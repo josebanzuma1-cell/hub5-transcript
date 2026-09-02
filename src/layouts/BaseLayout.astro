@@ -1,5 +1,7 @@
 ---
 import '@fontsource-variable/inter';
+import '@fontsource/cinzel/600.css';
+import '@fontsource/cinzel/700.css';
 import '@kit/styles/tokens.css';
 import '@kit/styles/base.css';
 import '@kit/styles/forms.css';
@@ -47,7 +49,7 @@ const year = new Date().getFullYear();
     <a class="visually-hidden" href="#main">Skip to content</a>
     <header class="site-header site-header--ink">
       <div class="page site-header__inner">
-        <a class="brand" href="/"><Logo size={26} />{SITE.name}</a>
+        <a class="brand" href="/"><Logo size={26} /><span class="wordmark">{SITE.name}</span></a>
         <nav class="nav" aria-label="Calculators">
           {NAV.map((item) => (
             <a href={item.href} aria-current={canonical === item.href ? 'page' : undefined}>{item.label}</a>
@@ -63,7 +65,7 @@ const year = new Date().getFullYear();
       <div class="page">
         <div class="footer-grid">
           <div>
-            <h4>{SITE.name}</h4>
+            <h4><span class="wordmark wordmark--foot">{SITE.name}</span></h4>
             <p style="max-width:34ch">{SITE.tagline}.</p>
           </div>
           <div>
