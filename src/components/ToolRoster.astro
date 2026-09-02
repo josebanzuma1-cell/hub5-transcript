@@ -1,0 +1,96 @@
+---
+/* Hub-specific tool layout — the fifth in the portfolio.
+
+   Every other hub takes a fixed set of numbers: one balance, one salary, one
+   premium. This hub takes LISTS. A GPA is a list of courses. A course grade is
+   a list of weighted components. A student's debt is a list of loans, and
+   treating it as one blended balance is exactly the simplification that hides
+   which loan to attack first.
+
+   So the primary input surface is a table you add rows to, and the answer sits
+   in a card that stays with you while you edit it. On a phone the card comes
+   first, because the whole point is watching the number move.
+
+   Slots:
+     "result"  — the figure card, sticky on desktop
+     "roster"  — column headings for the table
+     "options" — controls that are NOT per-row (scale, strategy, extra payment)
+     default   — ledger, prose, related tools
+*/
+interface Props {
+  title: string;
+  intro: string;
+  breadcrumbs: Array<{ href?: string; label: string }>;
+  /** must match the id passed to mountRoster() */
+  rosterId: string;
+  /** label on the add button, e.g. "Add a course" */
+  addLabel: string;
+  /** grid-template-columns for the table, matching the column widths */
+  columns: string;
+}
+const { title, intro, breadcrumbs, rosterId, addLabel, columns } = Astro.props;
+---
+<div class="page-band">
+  <div class="page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      {breadcrumbs.map((c, i) => (
+        <>
+          {i > 0 && <span aria-hidden="true">/</span>}
+          {c.href ? <a href={c.href}>{c.label}</a> : <span aria-current="page">{c.label}</span>}
+        </>
+      ))}
+    </nav>
+    <div class="tool-hero">
+      <h1>{title}</h1>
+      <p>{intro}</p>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="deskwork" data-roster={rosterId} data-state="init" style={`--roster-cols: ${columns}`}>
+    {/* Result first in the DOM so it is first on a phone, where watching the
+        number change is the entire experience. CSS reorders it on desktop. */}
+    <aside class="deskwork__result">
+      <div class="scorecard">
+        <slot name="result" />
+      </div>
+      <slot name="options" />
+    </aside>
+
+    <div class="deskwork__roster">
+      <div class="roster">
+        <div class="roster__head" style={`grid-template-columns: ${columns} 40px`}>
+          <slot name="roster" />
+          <span class="visually-hidden">Remove</span>
+        </div>
+        <div data-roster-body></div>
+        <div class="roster__foot">
+          <button type="button" class="btn btn--primary" data-roster-add>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            {addLabel}
+          </button>
+          <button type="button" class="btn" data-roster-reset>Start over</button>
+          <button type="button" class="btn" data-roster-share>Copy link</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <slot />
+</div>
+
+<script>
+  // Sharing is the one thing the roster manager cannot do from inside itself:
+  // it owns the URL, but the button lives in the layout.
+  document.querySelector('[data-roster-share]')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    const original = btn.dataset.label ?? btn.textContent ?? 'Copy link';
+    btn.dataset.label = original;
+    navigator.clipboard?.writeText(location.href).then(() => {
+      btn.textContent = 'Link copied';
+      setTimeout(() => { btn.textContent = original; }, 2000);
+    }, () => { /* clipboard blocked; the address bar already holds the URL */ });
+  });
+</script>

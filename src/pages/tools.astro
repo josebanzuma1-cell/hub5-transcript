@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, TOOLS } from '../lib/site';
+const canonical = '/tools';
+const title = `All Calculators | ${SITE.name}`;
+const description = 'Every calculator on the site: GPA, the mark needed on a final, and student loan payoff.';
+const grades = TOOLS.filter((t) => t.group === 'grades');
+const money = TOOLS.filter((t) => t.group === 'money');
+---
+<BaseLayout {title} {description} {canonical}>
+  <div class="page-band">
+    <div class="page">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Calculators</span>
+      </nav>
+      <div class="tool-hero">
+        <h1>All calculators</h1>
+        <p>
+          Grades first, money second — which is the order most people meet
+          them in, and the wrong order to learn about them in.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="page" style="padding-top:var(--s-6)">
+    <div class="grouplabel"><span></span>Grades</div>
+    <div class="grouprow" style="margin-bottom:var(--s-7)">
+      {grades.map((t) => (
+        <a class="toolcard" href={`/tools/${t.slug}`}>
+          <span class="toolcard__q">{t.question}</span>
+          <span class="toolcard__d">{t.blurb}</span>
+          <span class="toolcard__go">Open →</span>
+        </a>
+      ))}
+    </div>
+    <div class="grouplabel grouplabel--money"><span></span>Money</div>
+    <div class="grouprow">
+      {money.map((t) => (
+        <a class="toolcard" href={`/tools/${t.slug}`}>
+          <span class="toolcard__q">{t.question}</span>
+          <span class="toolcard__d">{t.blurb}</span>
+          <span class="toolcard__go">Open →</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

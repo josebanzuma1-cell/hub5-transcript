@@ -1,0 +1,226 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ToolRoster from '../../components/ToolRoster.astro';
+import RelatedTools from '@kit/components/RelatedTools.astro';
+import { SITE, toolBySlug, toolsExcept } from '../../lib/site';
+
+const tool = toolBySlug('final-grade-calculator')!;
+const canonical = `/tools/${tool.slug}`;
+const title = `${tool.title} | ${SITE.name}`;
+const description =
+  'Work out the mark you need on the final exam. Enter what each part of the ' +
+  'course is worth and what you have scored, and it tells you what the final ' +
+  'has to carry — including when no mark is enough.';
+
+const schema = [
+  {
+    '@context': 'https://schema.org', '@type': 'WebApplication',
+    name: tool.title, url: `${SITE.url}${canonical}`,
+    applicationCategory: 'EducationalApplication', operatingSystem: 'Any',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  },
+  {
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question', name: 'How do I calculate what I need on my final?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'Subtract the marks you have already banked, as a share of the whole course, from your ' +
+          'target. Divide the remainder by the weight of the final. If homework is 20% and you ' +
+          'scored 92, you have banked 18.4 points of the course; the final has to supply the rest.' },
+      },
+      {
+        '@type': 'Question', name: 'What if I need more than 100% on the final?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'Then the target is out of reach and no mark on the exam will get you there. This is a ' +
+          'common outcome at the point in term when people search for this, and it is worth ' +
+          'knowing early — either revise the target, or ask about extra credit before the exam ' +
+          'rather than after it.' },
+      },
+    ],
+  },
+];
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <ToolRoster
+    title="What do I need on the final?"
+    intro="Enter every graded part of the course and what it is worth. Leave the final's score blank — that is what we are solving for."
+    breadcrumbs={[{ href: '/', label: 'Home' }, { href: '/tools', label: 'Calculators' }, { label: 'Final grade' }]}
+    rosterId="fin"
+    addLabel="Add a component"
+    columns="minmax(0,1fr) 96px 96px"
+  >
+    <Fragment slot="result">
+      <div class="scorecard__label" id="fin-label">Needed on the final</div>
+      <div class="scorecard__value" id="fin-need">—</div>
+      <p class="scorecard__sub" id="fin-sub">—</p>
+      <div class="scorecard__split">
+        <div class="stat">
+          <span class="stat__label">Standing now</span>
+          <span class="scorecard__alt" id="fin-cur">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Best possible</span>
+          <span class="scorecard__alt" id="fin-best">—</span>
+        </div>
+      </div>
+    </Fragment>
+
+    <Fragment slot="options">
+      <div class="field" style="margin-top:var(--s-4)">
+        <label class="field__label" for="fin-target">
+          <span>Target grade</span>
+          <span class="field__hint">the final course mark you want</span>
+        </label>
+        <div class="field__control" data-affix="post">
+          <input class="input" id="fin-target" type="text" inputmode="decimal" value="90" />
+          <span class="field__affix field__affix--post" aria-hidden="true">%</span>
+        </div>
+      </div>
+    </Fragment>
+
+    <Fragment slot="roster">
+      <span>Component</span><span>Weight %</span><span>Your score %</span>
+    </Fragment>
+
+    <div class="working">
+      <div class="working__head">Where the marks are</div>
+      <div class="working__body" id="fin-working"></div>
+    </div>
+
+    <div class="verdict">
+      <div class="verdict__label">In one sentence</div>
+      <p class="verdict__text" id="fin-verdict">—</p>
+    </div>
+
+    <div id="fin-notes"></div>
+
+    <section class="prose" style="margin-top:var(--s-8)">
+      <h2>The arithmetic, in one paragraph</h2>
+      <p>
+        Every graded component is worth a share of the course. Multiply what
+        you scored by what it was worth, and you get the points you have banked
+        toward the whole course — not toward that assignment. Homework worth
+        20% with a score of 92 banks 18.4 points out of 100. Do that for every
+        graded item, add them up, and subtract the total from your target. What
+        is left is what the final has to supply, and dividing it by the final's
+        weight gives the mark you need on the exam itself.
+      </p>
+      <p>
+        The distinction that trips people up: your <em>current grade</em> is
+        your marks divided by the weight <em>graded so far</em>. Your
+        <em>banked points</em> are your marks as a share of the
+        <em>whole course</em>. If you are sitting at 84% with half the course
+        graded, you have banked 42 points, not 84. Both numbers are shown above
+        because confusing them is how people badly misjudge what the exam has
+        to do.
+      </p>
+
+      <h2>The two answers people are not expecting</h2>
+      <p>
+        <strong>You need more than 100%.</strong> The target is out of reach —
+        no mark on the exam will get you there. Most calculators print "you
+        need 118%" and leave you to work out what that means. That is
+        technically true and practically useless, so this one says the target
+        is unreachable and shows the best grade still available to you.
+      </p>
+      <p>
+        This is worth knowing before the exam rather than after. If a
+        particular grade matters — a scholarship condition, a prerequisite, a
+        GPA threshold — the time to ask about extra credit, a reweighting, or a
+        late submission is while the course is still running.
+      </p>
+      <p>
+        <strong>You need zero or less.</strong> The grade is already secured:
+        even a blank exam leaves you above the target. Students revising in a
+        panic for an exam they mathematically cannot fail deserve to know that,
+        and the tool says so plainly rather than printing a negative percentage
+        and letting you puzzle over it.
+      </p>
+
+      <h2>What this cannot know</h2>
+      <p>
+        <strong>Dropped scores.</strong> Many courses drop the lowest quiz or
+        homework mark. If yours does, leave the dropped item out entirely
+        rather than entering a zero — including it will understate where you
+        stand.
+      </p>
+      <p>
+        <strong>Curves and scaling.</strong> A curve applied to the final, or
+        to the course as a whole, changes the answer and is not knowable in
+        advance. Treat the figure here as what you need before any curve, which
+        is the conservative direction.
+      </p>
+      <p>
+        <strong>Rounding rules.</strong> Whether an 89.5 becomes an A- depends
+        on the instructor, and some do not round at all. If you land within
+        half a point of a boundary, ask rather than assume.
+      </p>
+      <p>
+        <strong>Weights that do not add to 100.</strong> If your components sum
+        to less than 100%, the shortfall is treated as the final's weight. If
+        they sum to more, something has been entered twice. The page flags both
+        rather than quietly producing a number.
+      </p>
+
+      <h2>Why the final is worth less than it feels</h2>
+      <p>
+        A final exam looms larger in the mind than it does in the arithmetic.
+        On a course where the exam is worth 30%, the difference between a 70
+        and a 90 on it is six points of your course grade. That is real, and it
+        is usually not the difference between letter grades — which means the
+        marks you have already banked are doing most of the work, and always
+        were.
+      </p>
+      <p>
+        The corollary is more useful: a heavily weighted final is the one worth
+        worrying about. If the exam is 50% or more of the course, it genuinely
+        can move you two letter grades, and the calculation above is telling
+        you something that matters. Check the weight before you decide how
+        much to panic.
+      </p>
+
+      <h2>Weighted categories versus straight points</h2>
+      <p>
+        This page assumes a weighted course: homework is worth 20%, the midterm
+        30%, and so on, regardless of how many points each contains. That is
+        the most common structure and the one syllabi usually describe.
+      </p>
+      <p>
+        Some courses run on straight points instead — everything is worth some
+        number of points and your grade is your points over the total
+        available. You can still use this: enter each category's share of the
+        total points as its weight. A 200-point final in a 1,000-point course
+        is a 20% weight.
+      </p>
+      <p>
+        The two systems give different answers for the same scores, which
+        surprises people. Under weighted categories one bad homework mark is
+        diluted by every other homework; under points it counts in proportion
+        to its size. If your syllabus is ambiguous, ask which applies before
+        relying on any calculation.
+      </p>
+
+      <h2>How to use it well</h2>
+      <p>
+        Enter every graded component, including the ones still to come, and
+        leave the score blank for anything not yet graded. The tool treats
+        ungraded weight as what the final has to carry, so a course with a
+        20% project still outstanding and a 30% exam will tell you what those
+        two together must average.
+      </p>
+      <p>
+        Then try a few targets. The gap between what you need for an A and what
+        you need for a B is often the difference between a week of work and a
+        month of it, and seeing both numbers is usually more useful than
+        seeing either one alone.
+      </p>
+    </section>
+
+    <RelatedTools heading="Also worth a look" items={toolsExcept(tool.slug).map((t) => ({
+      href: `/tools/${t.slug}`, title: t.title, desc: t.blurb,
+    }))} />
+  </ToolRoster>
+
+  <script src="../../scripts/final-island.ts"></script>
+</BaseLayout>

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Query strings carry calculator inputs. Shareable, but not separate pages —
+# every tool page declares a clean canonical.
+Disallow: /*?
+
+Sitemap: https://example.com/sitemap.xml

@@ -1,0 +1,189 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, TOOLS } from '../lib/site';
+import { GRADES, LEVELS } from '../lib/tools/gpa';
+
+const title = `${SITE.name} — ${SITE.tagline}`;
+const description = SITE.description;
+const canonical = '/';
+
+const grades = TOOLS.filter((t) => t.group === 'grades');
+const money = TOOLS.filter((t) => t.group === 'money');
+
+/* Three rows, pre-filled with a mix that produces a weighted GPA meaningfully
+   different from the unweighted one. A demo where both numbers match teaches
+   the reader nothing about why there are two. */
+const seed = [
+  { name: 'AP Biology', credits: '1', grade: 'A-', level: 'ap' },
+  { name: 'English', credits: '1', grade: 'B+', level: 'reg' },
+  { name: 'Honours Pre-Calc', credits: '1', grade: 'A', level: 'honors' },
+];
+
+const schema = [{
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: TOOLS.map((t, i) => ({
+    '@type': 'ListItem', position: i + 1, name: t.title, url: `${SITE.url}/tools/${t.slug}`,
+  })),
+}];
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <section class="hero">
+    <div class="page hero__inner">
+      <div>
+        <span class="hero__eyebrow">No sign-up, nothing stored</span>
+        <h1>Your grades, and what the degree behind them <em>actually costs</em>.</h1>
+        <p class="hero__sub">
+          Start with the GPA — it takes about thirty seconds, and it is right
+          here. Then find out what the loans behind it will cost you, which is
+          the question nobody asks until it is too late to change the answer.
+        </p>
+        <div class="hero__cta">
+          <a class="btn--hero" href="/tools/gpa-calculator">
+            Open the full calculator
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="btn--ghost" href="/tools/student-loan-payoff-calculator">Loan payoff</a>
+        </div>
+        <p class="hero__note">
+          Everything runs in your browser. Your grades and your balances are
+          never sent anywhere.
+        </p>
+      </div>
+
+      <aside class="tryit" id="tryit" aria-label="Quick GPA calculator">
+        <div class="tryit__top">
+          <span class="tryit__label">Try it now</span>
+          <span class="tryit__live">Updates as you type</span>
+        </div>
+        <div class="tryit__rows">
+          {seed.map((row, i) => (
+            <div class="tryit__row">
+              <input class="input" type="text" value={row.name} data-t="name" data-i={i}
+                     aria-label={`Course ${i + 1} name`} />
+              <input class="input roster__input--num" type="text" inputmode="decimal" value={row.credits}
+                     data-t="credits" data-i={i} aria-label={`Course ${i + 1} credits`} />
+              <select class="select" data-t="grade" data-i={i} aria-label={`Course ${i + 1} grade`}>
+                {GRADES.map((g) => <option value={g.id} selected={g.id === row.grade}>{g.id}</option>)}
+              </select>
+            </div>
+          ))}
+          <div class="tryit__row" style="grid-template-columns:1fr">
+            <select class="select" data-t="level" data-i="all" aria-label="Course level for all three rows">
+              {LEVELS.map((l) => <option value={l.id} selected={l.id === 'honors'}>All rows: {l.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div class="tryit__out">
+          <div class="tryit__fig">
+            <span class="tryit__figl">Unweighted</span>
+            <span class="tryit__figv" id="tryit-un">—</span>
+          </div>
+          <div class="tryit__fig">
+            <span class="tryit__figl">Weighted</span>
+            <span class="tryit__figv" id="tryit-w">—</span>
+          </div>
+        </div>
+        <p class="tryit__foot" id="tryit-note">
+          Three rows here; the full calculator takes as many as you need and
+          keeps the working.
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="figures">
+    <div class="page figures__inner">
+      <div class="figures__item"><span class="figures__n">2</span><span class="figures__l">GPAs, always shown together</span></div>
+      <div class="figures__item"><span class="figures__n">3</span><span class="figures__l">payoff strategies compared</span></div>
+      <div class="figures__item"><span class="figures__n">0</span><span class="figures__l">fields sent to a server</span></div>
+      <div class="figures__item"><span class="figures__n">Every</span><span class="figures__l">assumption stated on the page</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="page">
+      <div class="section__head">
+        <h2>Start with the grade. Finish with the bill.</h2>
+        <p>
+          These sit on one site on purpose. The grade tools are what you need
+          this week; the money tools are what you will wish you had read
+          before signing. Both are here, and neither asks for an email address.
+        </p>
+      </div>
+
+      <div class="grouplabel"><span></span>Grades</div>
+      <div class="grouprow" style="margin-bottom:var(--s-7)">
+        {grades.map((t) => (
+          <a class="toolcard" href={`/tools/${t.slug}`}>
+            <span class="toolcard__q">{t.question}</span>
+            <span class="toolcard__d">{t.blurb}</span>
+            <span class="toolcard__go">
+              Open
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </span>
+          </a>
+        ))}
+      </div>
+
+      <div class="grouplabel grouplabel--money"><span></span>Money</div>
+      <div class="grouprow">
+        {money.map((t) => (
+          <a class="toolcard" href={`/tools/${t.slug}`}>
+            <span class="toolcard__q">{t.question}</span>
+            <span class="toolcard__d">{t.blurb}</span>
+            <span class="toolcard__go">
+              Open
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tint">
+    <div class="page">
+      <div class="section__head">
+        <h2>Why these work differently</h2>
+        <p>Grade calculators are a crowded field. Here is what is actually different about these.</p>
+      </div>
+      <div class="grouprow" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr))">
+        <div class="toolcard" style="cursor:default">
+          <span class="toolcard__q">Both GPAs, every time</span>
+          <span class="toolcard__d">
+            Unweighted is what most applications recalculate; weighted is what
+            your school puts on the transcript. Showing one silently answers a
+            question you did not know you were being asked.
+          </span>
+        </div>
+        <div class="toolcard" style="cursor:default">
+          <span class="toolcard__q">Loans listed one by one</span>
+          <span class="toolcard__d">
+            A borrower with 4.5% and 7.05% debt does not have one blended
+            balance. Which loan you attack first changes the total, and a
+            single balance hides that decision entirely.
+          </span>
+        </div>
+        <div class="toolcard" style="cursor:default">
+          <span class="toolcard__q">The unwelcome answers</span>
+          <span class="toolcard__d">
+            When no mark on the final reaches your target, the page says so
+            instead of printing "you need 118%". When the grade is already
+            secured, it says that too.
+          </span>
+        </div>
+        <div class="toolcard" style="cursor:default">
+          <span class="toolcard__q">Your school is the authority</span>
+          <span class="toolcard__d">
+            There is no national weighting standard. This applies the common
+            +0.5 for honours and +1.0 for AP, and says plainly that a school's
+            own scale beats ours.
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="../scripts/hero-gpa.ts"></script>
+</BaseLayout>

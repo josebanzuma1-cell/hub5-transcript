@@ -1,0 +1,110 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../lib/site';
+import { GRADES, LEVELS } from '../lib/tools/gpa';
+const canonical = '/methodology';
+const title = `How We Calculate | ${SITE.name}`;
+const description = 'Every formula, every default, and everything each model deliberately leaves out.';
+---
+<BaseLayout {title} {description} {canonical}>
+  <div class="page-band">
+    <div class="page">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Methodology</span>
+      </nav>
+      <div class="tool-hero">
+        <h1>How we calculate</h1>
+        <p>The formulas, the defaults, and the limits — including the one thing this site cannot check for you.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <section class="prose" style="margin-top:var(--s-6)">
+      <h2>Where the numbers come from</h2>
+      <p>
+        Almost uniquely in this portfolio, <strong>this hub publishes no
+        external data</strong>. There is no rate table to verify, no statutory
+        limit, no government figure. Every number on every page comes from what
+        you type. That is a property of the subject, not a gap in the research.
+      </p>
+      <p>
+        Two conventions the site does supply, both worth stating plainly
+        because neither is a fact.
+      </p>
+      <p>
+        <strong>The grade scale.</strong> {GRADES.length} grades from A+ to F on
+        the standard four-point scale. A+ counts 4.0, not 4.3 — most US
+        institutions cap the unweighted scale at 4.0, and the higher value
+        would inflate every GPA in the direction nobody double-checks.
+      </p>
+      <p>
+        <strong>The weighting.</strong> {LEVELS.map((l) => `${l.label} +${l.bonus.toFixed(1)}`).join(', ')}.
+        The most common convention, and not a standard. Schools weight
+        differently, cap how many weighted courses count, or run a 5.0 scale
+        throughout. Where our figure and your school's disagree, your school is
+        right, and every GPA page says so.
+      </p>
+
+      <h2>GPA</h2>
+      <p>
+        Credit-weighted average of grade points: each course's points times its
+        credits, summed, divided by total credits. Weighted GPA adds the level
+        bonus to each course's points before the same calculation, which is why
+        it routinely exceeds 4.0.
+      </p>
+      <p>
+        <strong>Excluded deliberately:</strong> deciding which courses count.
+        Colleges recalculating a GPA often drop electives and count only core
+        academic subjects, and that judgement is local. Pass/fail courses,
+        withdrawals and repeats are left to you for the same reason.
+      </p>
+
+      <h2>Grade needed on the final</h2>
+      <p>
+        Each graded component contributes its score times its weight to a
+        100-point course total. Subtract what is banked from the target, divide
+        by the weight still ungraded: that is the mark the final must carry.
+      </p>
+      <p>
+        Two results are reported as outcomes rather than numbers. Above 100%
+        means the target is unreachable; at or below zero means the grade is
+        already secured. Printing "you need 118%" is correct and useless.
+      </p>
+      <p>
+        <strong>Excluded deliberately:</strong> dropped lowest scores, curves,
+        scaling and rounding. All are local, all change the answer, none can be
+        known from here — so the figure is the mark needed before any of them,
+        which is the conservative direction.
+      </p>
+
+      <h2>Student loan payoff</h2>
+      <p>
+        Month by month: interest accrues on each loan at one twelfth of its
+        annual rate, minimums apply, then any extra goes to one target loan
+        chosen by strategy. A cleared loan releases its minimum into the next
+        month's attack — modelled for all three strategies, not only the one
+        named after it.
+      </p>
+      <p>
+        All three are computed every time, so the comparison between them is
+        real rather than asserted.
+      </p>
+      <p>
+        <strong>Excluded deliberately:</strong> interest capitalisation events,
+        servicer allocation rules, variable rates, deferment, forbearance and
+        income-driven repayment. The last matters most — if you are working
+        toward forgiveness, paying extra can actively cost you money, and this
+        model cannot know that.
+      </p>
+
+      <h2>What none of these are</h2>
+      <p>
+        Not advice, academic or financial. A GPA here is an estimate; your
+        institution's calculation is the one that counts. A payoff schedule
+        depends on terms you entered and a servicer behaving as assumed.
+        Confirm anything you plan to act on.
+      </p>
+    </section>
+  </div>
+</BaseLayout>

@@ -1,0 +1,55 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../lib/site';
+const canonical = '/privacy';
+const title = `Privacy | ${SITE.name}`;
+const description = 'What this site collects, which is close to nothing, and why.';
+---
+<BaseLayout {title} {description} {canonical}>
+  <div class="page-band">
+    <div class="page">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Privacy</span>
+      </nav>
+      <div class="tool-hero">
+        <h1>Privacy</h1>
+        <p>Your grades and your loan balances never leave your browser.</p>
+      </div>
+    </div>
+  </div>
+  <div class="page">
+    <section class="prose" style="margin-top:var(--s-6)">
+      <h2>The calculators</h2>
+      <p>
+        Every calculation happens in your browser. Your grades, your course
+        list and your loan balances are never transmitted, never stored and
+        never seen by us. There is no account and no email address to give.
+      </p>
+      <p>
+        This is a design choice rather than a policy promise: the site is a set
+        of static files with no backend that could receive the data.
+      </p>
+      <h2>Shareable links</h2>
+      <p>
+        Your rows are encoded into the page address so a result can be shared.
+        That address is handled by your browser. If you copy the link and send
+        it, the values in it go wherever you send them — so treat a link
+        holding your grades or balances the way you would treat any other
+        message containing them.
+      </p>
+      <h2>What is collected</h2>
+      <p>
+        Standard web server request logs: IP address, user agent, page
+        requested. No cookies are set for tracking or advertising, and no
+        analytics script that profiles you across other sites is loaded.
+      </p>
+      <h2>Students under 18</h2>
+      <p>
+        Some of these tools are aimed at school students. That is a reason for
+        the design above rather than a footnote to it — nothing here asks for a
+        name, an age, a school or an email, because none of it is needed to
+        average four numbers.
+      </p>
+    </section>
+  </div>
+</BaseLayout>

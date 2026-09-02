@@ -1,0 +1,47 @@
+---
+/* Brand mark: a transcript page with its top-right corner turned back, and
+   three marks inside rising left to right.
+
+   The folded corner is what makes the silhouette work at 16px — it breaks the
+   rectangle, which is otherwise the least distinctive shape there is. Against
+   the portfolio's other marks (a rounded-square calculator, a circle, a broken
+   square, a shield) an off-square page reads as its own thing.
+
+   Drawn on a 32x32 grid. Body follows --c-accent so re-theming a hub re-themes
+   the mark; --logo-body and --logo-glyph override it on dark surfaces. */
+interface Props {
+  size?: number;
+  /** accessible name; omit when a text wordmark sits next to it */
+  title?: string;
+}
+const { size = 24, title } = Astro.props;
+---
+<svg
+  width={size} height={size} viewBox="0 0 32 32"
+  fill="none" xmlns="http://www.w3.org/2000/svg"
+  role={title ? 'img' : 'presentation'}
+  aria-label={title}
+  aria-hidden={title ? undefined : 'true'}
+  class="logo"
+>
+  {title && <title>{title}</title>}
+
+  {/* page with the top-right corner cut away */}
+  <path
+    d="M5 4.5A2.5 2.5 0 0 1 7.5 2h11L27 10.5v19a2.5 2.5 0 0 1-2.5 2.5h-17A2.5 2.5 0 0 1 5 29.5Z"
+    fill="var(--logo-body, var(--c-accent))"
+  />
+  {/* the turned-back corner itself, lightened so the fold reads */}
+  <path d="M18.5 2 27 10.5h-8.5Z" fill="var(--logo-glyph, #fff)" opacity="0.55" />
+
+  {/* three marks, rising — a record of results, not decoration */}
+  <g fill="var(--logo-glyph, #fff)">
+    <rect x="10" y="24"   width="4.5" height="3.2" rx="1.6" />
+    <rect x="10" y="19"   width="8"   height="3.2" rx="1.6" />
+    <rect x="10" y="14"   width="12"  height="3.2" rx="1.6" />
+  </g>
+</svg>
+
+<style>
+  .logo { display: block; flex: none; }
+</style>

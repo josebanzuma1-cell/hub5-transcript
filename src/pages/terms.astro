@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../lib/site';
+const canonical = '/terms';
+const title = `Terms | ${SITE.name}`;
+const description = 'Terms of use, and the limits of what these calculators are.';
+---
+<BaseLayout {title} {description} {canonical}>
+  <div class="page-band">
+    <div class="page">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Terms</span>
+      </nav>
+      <div class="tool-hero">
+        <h1>Terms</h1>
+        <p>What this site is, what it is not, and what you can rely on it for.</p>
+      </div>
+    </div>
+  </div>
+  <div class="page">
+    <section class="prose" style="margin-top:var(--s-6)">
+      <h2>Not advice</h2>
+      <p>
+        {SITE.name} publishes calculators and explanatory writing. Nothing here
+        is academic, financial or legal advice, and nothing here is an offer of
+        credit or a recommendation to take one.
+      </p>
+      <h2>Accuracy</h2>
+      <p>
+        The models are tested and the formulas are on the methodology page. A
+        GPA calculated here is an estimate: your institution's own scale, and
+        its rules about which courses count, are the authority and they vary.
+        A loan schedule depends on the terms you enter and on a servicer
+        behaving as the model assumes.
+      </p>
+      <h2>Liability</h2>
+      <p>
+        The site is provided as is, without warranty. To the fullest extent
+        permitted by law we are not liable for any loss arising from use of it
+        or reliance on anything it produces. Decisions about your studies and
+        your debt are yours.
+      </p>
+      <h2>Use</h2>
+      <p>
+        Use the calculators freely and share result links. Do not scrape the
+        site at a volume that degrades it for other people, and do not present
+        its output as an official transcript, an institutional calculation or
+        a loan quote.
+      </p>
+    </section>
+  </div>
+</BaseLayout>

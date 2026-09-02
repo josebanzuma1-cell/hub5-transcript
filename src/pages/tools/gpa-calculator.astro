@@ -1,0 +1,235 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ToolRoster from '../../components/ToolRoster.astro';
+import RelatedTools from '@kit/components/RelatedTools.astro';
+import { SITE, toolBySlug, toolsExcept } from '../../lib/site';
+
+const tool = toolBySlug('gpa-calculator')!;
+const canonical = `/tools/${tool.slug}`;
+const title = `${tool.title} | ${SITE.name}`;
+const description =
+  'Work out your GPA with any number of courses. Shows weighted and ' +
+  'unweighted side by side, handles honours, AP, IB and dual enrolment, and ' +
+  'keeps the working so you can check it.';
+
+const schema = [
+  {
+    '@context': 'https://schema.org', '@type': 'WebApplication',
+    name: tool.title, url: `${SITE.url}${canonical}`,
+    applicationCategory: 'EducationalApplication', operatingSystem: 'Any',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  },
+  {
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question', name: 'What is the difference between weighted and unweighted GPA?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'Unweighted GPA puts every course on the same 4.0 scale regardless of difficulty. ' +
+          'Weighted GPA adds extra grade points for harder courses — commonly 0.5 for honours ' +
+          'and 1.0 for AP or IB — so it can exceed 4.0. Most college applications recalculate ' +
+          'an unweighted GPA using their own rules, while your school reports the weighted one ' +
+          'on your transcript and usually builds class rank from it.' },
+      },
+      {
+        '@type': 'Question', name: 'How do you calculate GPA?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'Multiply each course grade point by the credits that course carries, add those ' +
+          'products together, then divide by the total credits. A one-credit A- and a ' +
+          'three-credit B do not count equally, which is why credits matter as much as grades.' },
+      },
+      {
+        '@type': 'Question', name: 'Does an A+ count as 4.3?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'At most US institutions no — the unweighted scale caps at 4.0 and an A+ counts the ' +
+          'same as an A. A minority of schools award 4.3. This calculator uses 4.0, because ' +
+          'assuming the higher value would inflate a GPA in the direction people want it to go.' },
+      },
+    ],
+  },
+];
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <ToolRoster
+    title="What is my GPA?"
+    intro="Add your courses. Both the weighted and the unweighted figure update as you type, because which one you need depends entirely on who is asking."
+    breadcrumbs={[{ href: '/', label: 'Home' }, { href: '/tools', label: 'Calculators' }, { label: 'GPA' }]}
+    rosterId="gpa"
+    addLabel="Add a course"
+    columns="minmax(0,1fr) 82px 92px 132px"
+  >
+    <Fragment slot="result">
+      <div class="scorecard__label">Unweighted GPA</div>
+      <div class="scorecard__value" id="gpa-un">—</div>
+      <p class="scorecard__sub" id="gpa-sub">—</p>
+      <div class="scorecard__split">
+        <div class="stat">
+          <span class="stat__label">Weighted</span>
+          <span class="scorecard__alt" id="gpa-w">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Credits</span>
+          <span class="scorecard__alt" id="gpa-cr">—</span>
+        </div>
+      </div>
+    </Fragment>
+
+    <Fragment slot="roster">
+      <span>Course</span><span>Credits</span><span>Grade</span><span>Level</span>
+    </Fragment>
+
+    <div class="working">
+      <div class="working__head">The working</div>
+      <div class="working__body" id="gpa-working"></div>
+    </div>
+
+    <div class="verdict">
+      <div class="verdict__label">In one sentence</div>
+      <p class="verdict__text" id="gpa-verdict">—</p>
+    </div>
+
+    <div id="gpa-notes"></div>
+
+    <section class="prose" style="margin-top:var(--s-8)">
+      <h2>Two numbers, and why you get both</h2>
+      <p>
+        A GPA is a credit-weighted average of grade points. Multiply each
+        course's grade point by its credits, add the results, divide by total
+        credits. That last step is the one people skip: a one-credit A and a
+        four-credit C do not cancel out, and a calculator that ignores credits
+        will flatter you.
+      </p>
+      <p>
+        The harder question is which GPA. <strong>Unweighted</strong> puts
+        every course on the same 4.0 scale — an A in gym and an A in AP
+        Chemistry both count 4.0. <strong>Weighted</strong> adds points for
+        harder courses, so it can and routinely does exceed 4.0.
+      </p>
+      <p>
+        You need both because different readers want different ones. Your
+        school reports the weighted figure and usually builds class rank from
+        it. Most college applications recalculate an unweighted GPA using their
+        own rules — often stripping out non-academic courses entirely. Many
+        scholarship formulas and athletic eligibility rules specify unweighted.
+        A tool that shows one number has quietly chosen for you.
+      </p>
+
+      <h2>The weighting is a local convention, not a standard</h2>
+      <p>
+        There is no national weighting scale. This calculator applies the most
+        common convention — nothing extra for a regular course, +0.5 for
+        honours, +1.0 for AP, IB and dual enrolment — because it is what most
+        schools do. But plenty do something else: a flat +1.0 for anything
+        above regular, a 5.0 scale throughout, weighting confined to certain
+        departments, or caps on how many weighted courses count.
+      </p>
+      <p>
+        So treat the weighted figure here as an estimate and your school's
+        published scale as the authority. If the two disagree, your school is
+        right. The unweighted figure is far more portable, which is part of
+        why applications prefer it.
+      </p>
+
+      <h2>What this deliberately does not do</h2>
+      <p>
+        <strong>It does not decide which courses count.</strong> Colleges
+        recalculating your GPA frequently drop physical education, health and
+        electives, and count only core academic subjects. Whether a course
+        belongs in the calculation is a judgement this page cannot make for
+        you — it averages what you enter.
+      </p>
+      <p>
+        <strong>It does not handle pass/fail, withdrawals or repeats.</strong>
+        A pass/fail course usually carries credit but no grade points and
+        should be left out. A repeated course may replace the original grade or
+        average with it, depending on the institution. Both rules are local.
+      </p>
+      <p>
+        <strong>A+ counts as 4.0, not 4.3.</strong> Most US institutions cap
+        the unweighted scale at 4.0. A minority award 4.3 for an A+, and if
+        yours is one of them your real figure will be slightly higher than the
+        one here. We chose the lower value deliberately: an error that inflates
+        a GPA is the more damaging direction to be wrong in, because it is the
+        direction nobody checks.
+      </p>
+
+      <h2>Why a GPA gets harder to move every term</h2>
+      <p>
+        This is the arithmetic students most often get wrong, and it is worth
+        seeing plainly. A GPA is an average over every credit you have taken,
+        so each new term is a smaller share of the total. Twelve credits at a
+        3.0 average, followed by a perfect 4.0 term of twelve credits, gives
+        3.5 — not 3.7, and not "nearly a 4.0".
+      </p>
+      <p>
+        After sixty credits at 3.0, a flawless thirty-credit year lifts you to
+        about 3.33. The maths is unforgiving in one direction and merciful in
+        the other: a bad term early does lasting damage, and a bad term late
+        barely registers. If you are trying to clear a threshold by a
+        particular date, work out how many credits you have left before you
+        decide whether the target is reachable — the number of terms remaining
+        matters more than the effort in any one of them.
+      </p>
+
+      <h2>Semester GPA and cumulative GPA are different questions</h2>
+      <p>
+        A semester GPA covers one term. A cumulative GPA covers everything.
+        Institutions use them for different things — academic probation and
+        dean's list usually key off the semester figure, while graduation
+        honours, transfer admission and most scholarships use the cumulative.
+      </p>
+      <p>
+        To roll a new term into an existing record you cannot average the two
+        GPAs; you have to weight them by credits. Prior GPA times prior
+        credits, plus term GPA times term credits, divided by the total. This
+        page computes a single set of courses; to get a cumulative figure,
+        enter every course you have taken, or add one row standing for your
+        prior record with its total credits and its average grade.
+      </p>
+
+      <h2>Three mistakes worth avoiding</h2>
+      <p>
+        <strong>Entering percentages instead of letters.</strong> An 89% is not
+        3.89. Grade points come from the letter your school assigned, and the
+        percentage-to-letter cut-offs are local — an 89 is a B+ in most places
+        and an A- in some. Convert using your school's scale, then enter the
+        letter.
+      </p>
+      <p>
+        <strong>Guessing at credits.</strong> A year-long high school course is
+        usually one credit and a semester course a half; at university a course
+        is typically three or four. Guessing here distorts the average more
+        than a misremembered grade does, because credits multiply everything.
+      </p>
+      <p>
+        <strong>Counting courses the reader will not.</strong> If you are
+        checking against a college's threshold, work out their rules first.
+        Many strip electives and count only core academic subjects, which can
+        move a GPA by a couple of tenths in either direction.
+      </p>
+
+      <h2>What a GPA is worth, and what it is not</h2>
+      <p>
+        GPA is the single most portable summary of academic record, which is
+        why it is asked for so often. It is also crude. It cannot distinguish
+        an upward trajectory from a downward one at the same average, it
+        rewards course selection as much as performance, and comparing figures
+        across schools with different scales and different grading cultures is
+        close to meaningless.
+      </p>
+      <p>
+        The practical use is narrow and real: checking you are above a
+        threshold. Scholarship minimums, athletic eligibility, honour roll,
+        the cut-off for a particular programme. For that, the number needs to
+        be right, and it needs to be the <em>right kind</em> of number — which
+        is the whole reason this page shows two.
+      </p>
+    </section>
+
+    <RelatedTools heading="Once the grades are settled" items={toolsExcept(tool.slug).map((t) => ({
+      href: `/tools/${t.slug}`, title: t.title, desc: t.blurb,
+    }))} />
+  </ToolRoster>
+
+  <script src="../../scripts/gpa-island.ts"></script>
+</BaseLayout>

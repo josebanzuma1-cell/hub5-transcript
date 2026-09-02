@@ -1,0 +1,100 @@
+---
+import '@fontsource-variable/inter';
+import '@kit/styles/tokens.css';
+import '@kit/styles/base.css';
+import '@kit/styles/forms.css';
+import '@kit/styles/components.css';
+import '../styles/surfaces.css';
+import { SITE, NAV } from '../lib/site';
+import Logo from '../components/Logo.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  canonical: string;
+  schema?: unknown[];
+  noindex?: boolean;
+}
+const { title, description, canonical, schema = [], noindex = false } = Astro.props;
+const canonicalUrl = new URL(canonical, SITE.url).href;
+const baseSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE.name, url: SITE.url, description: SITE.description,
+};
+const year = new Date().getFullYear();
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {noindex && <meta name="robots" content="noindex,follow" />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:locale" content={SITE.locale} />
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json" set:html={JSON.stringify(baseSchema)} />
+    {schema.map((s) => <script type="application/ld+json" set:html={JSON.stringify(s)} />)}
+  </head>
+  <body>
+    <a class="visually-hidden" href="#main">Skip to content</a>
+    <header class="site-header site-header--ink">
+      <div class="page site-header__inner">
+        <a class="brand" href="/"><Logo size={26} />{SITE.name}</a>
+        <nav class="nav" aria-label="Calculators">
+          {NAV.map((item) => (
+            <a href={item.href} aria-current={canonical === item.href ? 'page' : undefined}>{item.label}</a>
+          ))}
+        </nav>
+        <a class="header-cta" href="/tools/gpa-calculator">Work out my GPA</a>
+      </div>
+    </header>
+
+    <main id="main"><slot /></main>
+
+    <footer class="site-footer site-footer--deep">
+      <div class="page">
+        <div class="footer-grid">
+          <div>
+            <h4>{SITE.name}</h4>
+            <p style="max-width:34ch">{SITE.tagline}.</p>
+          </div>
+          <div>
+            <h4>Grades</h4>
+            <ul>
+              {NAV.filter((_, i) => i < 2).map((item) => <li><a href={item.href}>{item.label}</a></li>)}
+            </ul>
+          </div>
+          <div>
+            <h4>Money</h4>
+            <ul>
+              {NAV.filter((_, i) => i >= 2).map((item) => <li><a href={item.href}>{item.label}</a></li>)}
+            </ul>
+          </div>
+          <div>
+            <h4>About</h4>
+            <ul>
+              <li><a href="/methodology">How we calculate</a></li>
+              <li><a href="/privacy">Privacy</a></li>
+              <li><a href="/terms">Terms</a></li>
+            </ul>
+          </div>
+        </div>
+        <p class="footer-legal" style="margin-top:var(--s-6);padding-top:var(--s-4);border-top:1px solid var(--c-line);font-size:var(--t-xs)">
+          © {year} {SITE.name}. Not financial, academic or legal advice. A GPA
+          calculated here is an estimate — your school's own scale and its
+          rules on which courses count are the authority, and they vary. Loan
+          figures depend on the terms you enter; confirm anything you plan to
+          act on with your servicer.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

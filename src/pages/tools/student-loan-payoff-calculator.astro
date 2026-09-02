@@ -1,0 +1,251 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ToolRoster from '../../components/ToolRoster.astro';
+import Chart from '@kit/components/Chart.astro';
+import RelatedTools from '@kit/components/RelatedTools.astro';
+import { SITE, toolBySlug, toolsExcept } from '../../lib/site';
+
+const tool = toolBySlug('student-loan-payoff-calculator')!;
+const canonical = `/tools/${tool.slug}`;
+const title = `${tool.title} — Avalanche vs Snowball | ${SITE.name}`;
+const description =
+  'List your student loans individually and see when they clear. Compares ' +
+  'paying the highest rate first, the smallest balance first, and paying only ' +
+  'the minimum — with the total interest each costs.';
+
+const schema = [
+  {
+    '@context': 'https://schema.org', '@type': 'WebApplication',
+    name: tool.title, url: `${SITE.url}${canonical}`,
+    applicationCategory: 'FinanceApplication', operatingSystem: 'Any',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  },
+  {
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question', name: 'Should I pay off the highest interest rate or the smallest balance first?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'Highest rate first — the avalanche method — always costs less in total interest. ' +
+          'Smallest balance first, the snowball, clears individual loans sooner, which some ' +
+          'people find easier to sustain. This calculator shows what the snowball costs you ' +
+          'rather than dismissing it, because a plan you abandon saves nothing.' },
+      },
+      {
+        '@type': 'Question', name: 'Does paying extra on student loans help?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'Yes, and more than most people expect, because every extra dollar goes straight ' +
+          'against principal. The saving compounds: clearing a loan early frees its minimum ' +
+          'payment to attack the next one, which is why the last loans fall much faster than ' +
+          'the first.' },
+      },
+    ],
+  },
+];
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <ToolRoster
+    title="When will my student loans be gone?"
+    intro="List each loan separately. A blended balance hides the one decision that actually matters — which loan the extra money goes to."
+    breadcrumbs={[{ href: '/', label: 'Home' }, { href: '/tools', label: 'Calculators' }, { label: 'Loan payoff' }]}
+    rosterId="loan"
+    addLabel="Add a loan"
+    columns="minmax(0,1fr) 110px 84px 96px"
+  >
+    <Fragment slot="result">
+      <div class="scorecard__label">Debt free in</div>
+      <div class="scorecard__value" id="loan-when">—</div>
+      <p class="scorecard__sub" id="loan-sub">—</p>
+      <div class="scorecard__split">
+        <div class="stat">
+          <span class="stat__label">Total interest</span>
+          <span class="scorecard__alt" id="loan-int">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Balance</span>
+          <span class="scorecard__alt" id="loan-bal">—</span>
+        </div>
+      </div>
+    </Fragment>
+
+    <Fragment slot="options">
+      <div class="field" style="margin-top:var(--s-4)">
+        <label class="field__label" for="loan-extra">
+          <span>Extra each month</span>
+          <span class="field__hint">on top of the minimums</span>
+        </label>
+        <div class="field__control" data-affix="pre">
+          <span class="field__affix field__affix--pre" aria-hidden="true">$</span>
+          <input class="input" id="loan-extra" type="text" inputmode="decimal" value="200" />
+        </div>
+      </div>
+      <div class="field">
+        <span class="field__label"><span>Which loan gets the extra</span></span>
+        <div class="segmented" role="radiogroup" aria-label="Strategy">
+          <label class="segmented__opt">
+            <input type="radio" name="loan-strategy" value="avalanche" checked /><span>Highest rate</span>
+          </label>
+          <label class="segmented__opt">
+            <input type="radio" name="loan-strategy" value="snowball" /><span>Smallest balance</span>
+          </label>
+          <label class="segmented__opt">
+            <input type="radio" name="loan-strategy" value="minimum" /><span>Nothing extra</span>
+          </label>
+        </div>
+      </div>
+    </Fragment>
+
+    <Fragment slot="roster">
+      <span>Loan</span><span>Balance</span><span>Rate %</span><span>Minimum</span>
+    </Fragment>
+
+    <div class="verdict">
+      <div class="verdict__label">In one sentence</div>
+      <p class="verdict__text" id="loan-verdict">—</p>
+    </div>
+
+    <div id="loan-notes"></div>
+
+    <section style="margin-top:var(--s-7)">
+      <div class="section-head"><h2>What each approach costs</h2></div>
+      <div class="working">
+        <div class="working__head">The three strategies, compared</div>
+        <div class="working__body" id="loan-compare"></div>
+      </div>
+    </section>
+
+    <section style="margin-top:var(--s-7)">
+      <div class="section-head"><h2>The balance coming down</h2></div>
+      <Chart id="chart-loan" height={240} caption="Total balance across all loans, month by month." />
+    </section>
+
+    <section class="prose" style="margin-top:var(--s-8)">
+      <h2>Why the loans go in one by one</h2>
+      <p>
+        Almost every payoff calculator asks for one balance and one rate. That
+        is not what student debt looks like. A typical borrower finishes with
+        four to eight separate loans — one or two per year of study, at
+        whatever rate applied that year, plus anything private.
+      </p>
+      <p>
+        Blending them destroys the only decision you actually control. Someone
+        with $18,000 at 4.99% and $9,000 at 7.05% does not have $27,000 at
+        5.68%. They have a choice about where the next spare hundred dollars
+        goes, and that choice is worth real money. A single balance makes the
+        question invisible, which is why this page insists on the list.
+      </p>
+
+      <h2>Avalanche, snowball, and the honest comparison</h2>
+      <p>
+        <strong>Highest rate first</strong> — the avalanche — is arithmetically
+        optimal. Interest accrues fastest on the highest rate, so killing that
+        loan first always costs the least in total. There is no scenario where
+        another order is cheaper.
+      </p>
+      <p>
+        <strong>Smallest balance first</strong> — the snowball — clears whole
+        loans sooner. It costs more, sometimes considerably, but it produces
+        visible wins early, and there is decent evidence that people stick with
+        it. This tool shows you exactly what that costs rather than pretending
+        the choice is obvious, because a mathematically perfect plan you
+        abandon in month four saves nothing at all.
+      </p>
+      <p>
+        If the gap between them is small, take the snowball and enjoy it. If
+        it is thousands, that is worth knowing before you choose.
+      </p>
+
+      <h2>The effect nobody expects</h2>
+      <p>
+        Watch the payoff dates in the working above. The gaps between them
+        shrink. Your first loan takes years; the last one falls in months.
+      </p>
+      <p>
+        That is the snowball effect and it applies to every strategy, not just
+        the one named after it. When a loan clears, its minimum payment does
+        not disappear — it joins the attack on the next loan. By the time you
+        are on the final balance you are throwing every dollar of every
+        original minimum at it. This is also why paying a little extra early
+        matters much more than paying a lot extra later.
+      </p>
+
+      <h2>When the minimum is not enough</h2>
+      <p>
+        A minimum payment that is smaller than the month's interest means the
+        balance grows no matter how long you pay. It sounds like an edge case
+        and it is not: it happens routinely on income-driven plans, during
+        graduated repayment, and on private loans taken while still studying.
+      </p>
+      <p>
+        The page flags any loan where this is true, because it is the single
+        most important thing to know about a debt and it is invisible from a
+        statement that only shows the amount due. If you are in that position,
+        the priority is not optimisation — it is getting the payment above the
+        interest line by whatever route is available.
+      </p>
+
+      <h2>Where the extra payment should go first</h2>
+      <p>
+        Before any of this: if you have an employer match on a retirement
+        contribution you are not taking, take it. A 50% match is an immediate
+        50% return, and no student loan rate comes close. Likewise, a credit
+        card at 22% should be cleared before a student loan at 5% under any
+        strategy.
+      </p>
+      <p>
+        Student loans usually sit below both of those and above a savings
+        account. The order that survives most scrutiny is: employer match,
+        then high-interest consumer debt, then a small emergency buffer, then
+        the student loans in this calculator, then investing. The buffer
+        matters more than it looks — without one, a car repair goes on a credit
+        card and undoes months of progress.
+      </p>
+
+      <h2>Before you refinance</h2>
+      <p>
+        Refinancing federal loans into a private loan lowers the rate and
+        <strong>permanently gives up</strong> income-driven repayment, federal
+        deferment and forbearance, and any prospect of forgiveness — including
+        Public Service Loan Forgiveness. That trade is irreversible. There is
+        no route back to federal status.
+      </p>
+      <p>
+        For a borrower with secure high income and no interest in forgiveness,
+        it can be straightforwardly good. For a teacher, a nurse, a public
+        defender, or anyone whose income might drop, it can be a serious
+        mistake made at the moment it looked like a rate improvement. Model the
+        interest saving here, then price the protections separately before
+        deciding — they are worth more than the rate difference in more cases
+        than the refinancing adverts suggest.
+      </p>
+
+      <h2>What this model assumes</h2>
+      <p>
+        Interest accrues monthly on the outstanding balance and payments apply
+        immediately. Real servicers may capitalise interest at particular
+        events, apply payments on a specific date, or allocate extra payments
+        across loans unless you tell them not to — that last one is worth a
+        phone call, because a servicer spreading your extra payment evenly is
+        quietly undoing your strategy.
+      </p>
+      <p>
+        Rates are treated as fixed. Most federal loans are, but variable-rate
+        private loans are not, and this model has no way to forecast them.
+      </p>
+      <p>
+        It also assumes you keep paying. Deferment, forbearance and
+        income-driven plans all change the picture, usually by lengthening the
+        term and increasing total interest. If you are on an income-driven
+        plan working toward forgiveness, paying extra can actively cost you
+        money — the whole point of that route is to pay the minimum and have
+        the remainder discharged.
+      </p>
+    </section>
+
+    <RelatedTools heading="Also on the site" items={toolsExcept(tool.slug).map((t) => ({
+      href: `/tools/${t.slug}`, title: t.title, desc: t.blurb,
+    }))} />
+  </ToolRoster>
+
+  <script src="../../scripts/loan-island.ts"></script>
+</BaseLayout>
