@@ -385,3 +385,23 @@ this the other way round would bury the answer below a form.
     loan happened to also be the smallest. A strategy switch that did nothing
     would have passed. The test suite now includes a case where rate and size
     disagree, precisely so the two strategies must diverge.
+
+19. **`Number('')` is 0, so stripping non-numerics turns rubbish into a clean
+    zero.** The scale converter parsed `"abc"` by removing everything
+    non-numeric and calling `Number` on what was left — an empty string, which
+    is 0, which is a valid grade. Rubbish came back as a confident 0.0 rather
+    than a rejection. Guard the *strip result*, not just `Number.isFinite` on
+    the output.
+
+20. **A converter whose round trip does not close is telling two stories.** The
+    Indian CGPA scale was parsed with a linear formula and rendered from a band
+    table, and the two disagreed: 8.7 went in as 3.22 and came back out as
+    8.5–8.9. Whenever a model converts both ways, assert that a value survives
+    the trip — the data gate does this now for all three numeric scales.
+
+21. **Verify before you build, when the subject is moving.** The plan called
+    for a "SAVE/IBR/PAYE" comparison. SAVE had been ended by court order in
+    March 2026 and replaced by RAP in July, so building to the brief would have
+    shipped a calculator for a plan nobody can enrol in. Ten minutes of
+    checking changed the tool's entire shape — eligibility now turns on when
+    the loans were disbursed, a question no pre-2026 version had to ask.

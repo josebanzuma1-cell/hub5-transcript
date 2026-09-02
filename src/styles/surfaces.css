@@ -318,28 +318,23 @@
   padding-block: var(--s-7);
 }
 .site-footer--deep h4 { color: #fff; }
-.site-footer--deep a { color: var(--c-on-deep-dim); }
-.site-footer--deep a:hover { color: var(--c-pop); }.site-footer--deep .footer-legal { border-top-color: var(--c-deep-line) !important; color: var(--c-on-deep-dim); }
+.site-footer--deep a { color: var(--c-on-deep-dim); }.site-footer--deep .footer-legal { border-top-color: var(--c-deep-line) !important; color: var(--c-on-deep-dim); }
 
 /* ============================================================
    THE WORDMARK
 
-   Cinzel, set in capitals with a foil-stamp gradient.
+   Cinzel, set in capitals.
 
    Cinzel is drawn from Roman inscriptional capitals — the lettering carved on
    monuments and, much later, printed on diplomas and certificates. It is the
    right face for a site called Transcript for exactly the reason it would be
-   the wrong one for a paragraph: it has no true lower case, every letter is
-   built for display, and it carries the institutional weight the name is
-   borrowing.
+   wrong for a paragraph: no true lower case, every letter built for display,
+   and it carries the institutional weight the name is borrowing.
 
-   THE FOIL IS SCOPED TO DARK SURFACES, and that is not a detail. The gradient
-   runs magenta through lavender to white, which is unreadable on a white
-   ground — the second half of the word simply vanishes. Real foil has the
-   same constraint: it is stamped onto dark or coloured stock because that is
-   where it shows. So the gradient applies on --c-deep surfaces and a solid
-   accent applies everywhere else, which means the mark stays legible if it
-   ever appears somewhere light.
+   Solid colour, deliberately. A gradient was tried and dropped: the letterforms
+   are the whole idea here, and anything moving across them competes with the
+   shapes rather than serving them. Cinzel is doing the work; it does not need
+   help.
 
    Declared here rather than in tokens.css: the kit's token NAMES are a shared
    contract across five hubs, and this typeface serves one of them.
@@ -360,44 +355,19 @@
   /* Cinzel's caps sit small for their point size beside Inter. */
   font-size: 1.02em;
   line-height: 1;
-  transition: filter .18s var(--ease);
-
-  /* The default, used on any light ground: solid, and legible. */
+  transition: color .18s var(--ease);
+  /* On a light ground: the accent violet. */
   color: var(--c-accent);
-  background-image: none;
 }
 
-/* The foil, only where there is something dark to stamp it onto. */
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .site-header--ink .wordmark,
-  .site-footer--deep .wordmark,
-  .hero .wordmark {
-    background-image: linear-gradient(
-      100deg,
-      #ff4d94 0%,
-      #ff8ec0 34%,
-      #e9d8f7 60%,
-      #ffffff 84%,
-      #ffc2dd 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-}
+/* On the dark chrome it needs to be near-white to hold its own, with the
+   magenta reserved for the things that are actually interactive. */
+.site-header--ink .wordmark,
+.site-footer--deep .wordmark,
+.hero .wordmark { color: #fff; }
 
 .site-header--ink .brand { align-items: center; gap: var(--s-3); }
-.site-header--ink .brand:hover .wordmark { filter: brightness(1.12); }
+.site-header--ink .brand:hover .wordmark { color: var(--c-pop); }
 
 /* In the footer it stands alone in a heading, so it can carry a little more. */
 .wordmark--foot { font-size: 1.15em; letter-spacing: 0.16em; }
-
-/* A gradient clipped to text prints as nothing at all. */
-@media print {
-  .wordmark {
-    color: #241033 !important;
-    -webkit-text-fill-color: #241033 !important;
-    background-image: none !important;
-  }
-}

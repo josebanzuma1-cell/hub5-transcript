@@ -1,0 +1,217 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ToolRoster from '../../components/ToolRoster.astro';
+import RelatedTools from '@kit/components/RelatedTools.astro';
+import { SITE, toolBySlug, toolsExcept } from '../../lib/site';
+
+const tool = toolBySlug('cumulative-gpa-calculator')!;
+const canonical = `/tools/${tool.slug}`;
+const title = `${tool.title} — Plan the Coming Term | ${SITE.name}`;
+const description =
+  'Roll each term into a cumulative GPA, weighted by credits rather than ' +
+  'averaged, and work out what the coming term has to average to reach a ' +
+  'target — including when the target is out of reach.';
+
+const schema = [
+  {
+    '@context': 'https://schema.org', '@type': 'WebApplication',
+    name: tool.title, url: `${SITE.url}${canonical}`,
+    applicationCategory: 'EducationalApplication', operatingSystem: 'Any',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  },
+  {
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question', name: 'How do I calculate cumulative GPA?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'Multiply each term GPA by the credits taken that term, add those products, and divide ' +
+          'by the total credits. You cannot average the GPAs themselves — a 3.0 over sixty ' +
+          'credits and a 4.0 over thirty is 3.33, not 3.5, because the first is twice the weight.' },
+      },
+      {
+        '@type': 'Question', name: 'Why is it so hard to raise a GPA later on?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'Because each new term is a smaller share of the total. After sixty credits at 3.0, a ' +
+          'perfect thirty-credit year only reaches about 3.33. A poor term early does lasting ' +
+          'damage; a poor term late barely registers.' },
+      },
+    ],
+  },
+];
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <ToolRoster
+    title="What will my GPA be after this term?"
+    intro="Enter each term you have completed. Terms are weighted by credits, not averaged — which is the error that makes people plan around a number they cannot reach."
+    breadcrumbs={[{ href: '/', label: 'Home' }, { href: '/tools', label: 'Calculators' }, { label: 'Cumulative GPA' }]}
+    rosterId="cum"
+    addLabel="Add a term"
+    columns="minmax(0,1fr) 96px 96px"
+  >
+    <Fragment slot="result">
+      <div class="scorecard__label">Cumulative GPA</div>
+      <div class="scorecard__value" id="cum-gpa">—</div>
+      <p class="scorecard__sub" id="cum-sub">—</p>
+      <div class="scorecard__split">
+        <div class="stat">
+          <span class="stat__label" id="cum-need-label">Next term needs</span>
+          <span class="scorecard__alt" id="cum-need">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Best possible</span>
+          <span class="scorecard__alt" id="cum-best">—</span>
+        </div>
+      </div>
+    </Fragment>
+
+    <Fragment slot="roster">
+      <span>Term</span><span>Credits</span><span>Term GPA</span>
+    </Fragment>
+
+    <Fragment slot="options">
+      <div class="field" style="margin-top:var(--s-4)">
+        <label class="field__label" for="cum-target">
+          <span>Target cumulative GPA</span><span class="field__hint">what you are aiming for</span>
+        </label>
+        <div class="field__control">
+          <input class="input" id="cum-target" type="text" inputmode="decimal" value="3.50" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="field__label" for="cum-planned">
+          <span>Credits next term</span><span class="field__hint">what you are about to take</span>
+        </label>
+        <div class="field__control">
+          <input class="input" id="cum-planned" type="text" inputmode="decimal" value="15" />
+        </div>
+      </div>
+    </Fragment>
+
+    <div class="verdict">
+      <div class="verdict__label">In one sentence</div>
+      <p class="verdict__text" id="cum-verdict">—</p>
+    </div>
+
+    <div id="cum-notes"></div>
+
+    <div class="working">
+      <div class="working__head">Term by term</div>
+      <div class="working__body" id="cum-working"></div>
+    </div>
+
+    <section class="prose" style="margin-top:var(--s-8)">
+      <h2>You cannot average two GPAs</h2>
+      <p>
+        This is the most common error in academic planning, and it runs in the
+        optimistic direction every time.
+      </p>
+      <p>
+        Sixty credits at 3.0 followed by thirty credits at 4.0 is not 3.5. It
+        is 3.33 — the first block is twice the weight of the second. The
+        arithmetic is: multiply each term's GPA by its credits, add the
+        products, divide by total credits. Averaging the GPAs themselves
+        pretends every term was the same size, and terms rarely are.
+      </p>
+      <p>
+        The gap is not academic. A student who believes a perfect year gets
+        them to 3.5, and finds themselves at 3.33, has missed a scholarship
+        threshold by a margin they thought they had cleared.
+      </p>
+
+      <h2>Why a GPA gets harder to move every term</h2>
+      <p>
+        Each new term is a smaller share of a growing total. After sixty
+        credits a thirty-credit year is a third of your record; after a hundred
+        and twenty it is a fifth.
+      </p>
+      <p>
+        The consequence is asymmetric and worth internalising early. A bad term
+        in first year does lasting damage, because everything after it is
+        diluting a small denominator. A bad term in final year barely
+        registers. If you are trying to clear a threshold by a particular date,
+        the credits remaining matter more than the effort you can muster in any
+        one of them.
+      </p>
+
+      <h2>When the target is out of reach</h2>
+      <p>
+        The panel above solves the planning question in reverse: given where
+        you are, what does the coming term have to average?
+      </p>
+      <p>
+        That answer is frequently above 4.0, and when it is, the page says the
+        target is unreachable this term rather than printing a number nobody
+        can score. It also shows the best cumulative a perfect term could
+        reach, which is the figure worth planning around — either as a revised
+        target, or as evidence you need more terms than you thought.
+      </p>
+      <p>
+        If the requirement comes back at 3.9 with a full load, treat it as a
+        warning rather than a plan. Requirements that need a near-perfect term
+        tend to be met by dropping a course, which reduces the credits and
+        raises the requirement further.
+      </p>
+
+      <h2>Term GPA, cumulative GPA, and which one is being asked for</h2>
+      <p>
+        A term GPA covers one block of study. A cumulative GPA covers
+        everything you have taken. They diverge quickly, and institutions use
+        them for different purposes without always saying which they mean.
+      </p>
+      <p>
+        Academic standing — probation, warning, dismissal — is usually judged
+        on the term, because it is meant to catch a problem while it is
+        recent. Dean's list and honour roll are almost always term-based for
+        the same reason. Graduation honours, transfer admission, most
+        scholarship renewals and graduate school applications use the
+        cumulative.
+      </p>
+      <p>
+        The practical implication: a strong term can lift you off probation
+        while leaving your cumulative well short of a scholarship threshold,
+        and both statements can be true at once. If a letter or a policy quotes
+        a number without saying which, ask before you plan around it.
+      </p>
+
+      <h2>Using this to plan several terms ahead</h2>
+      <p>
+        The calculator solves one term at a time, which is deliberate — but you
+        can chain it. Work out what the coming term needs; if that comes back
+        unreachable, add a row for it at a realistic GPA and run the question
+        again for the term after.
+      </p>
+      <p>
+        Two or three rounds of that usually produces the genuinely useful
+        answer, which is not a number but a date: the earliest term by which a
+        target is achievable at all. That is the figure worth taking to an
+        adviser, because it converts an anxious question into a concrete one.
+      </p>
+
+      <h2>What this does not know</h2>
+      <p>
+        <strong>Which courses your institution counts.</strong> Some exclude
+        transfer credit from the GPA while counting it toward the degree.
+        Repeated courses may replace the original grade or average with it.
+        Both change the figure and both are local.
+      </p>
+      <p>
+        <strong>Term versus cumulative thresholds.</strong> Academic probation
+        and dean's list usually key off a single term; graduation honours,
+        transfer admission and most scholarships use the cumulative. Check
+        which one your threshold means before planning against it.
+      </p>
+      <p>
+        <strong>Credits without grade points.</strong> Pass/fail courses
+        normally carry credit toward the degree but contribute nothing to the
+        GPA. Count them toward progress and leave them out of here.
+      </p>
+    </section>
+
+    <RelatedTools heading="Also worth a look" items={toolsExcept(tool.slug).map((t) => ({
+      href: `/tools/${t.slug}`, title: t.title, desc: t.blurb,
+    }))} />
+  </ToolRoster>
+
+  <script src="../../scripts/cum-island.ts"></script>
+</BaseLayout>

@@ -1,0 +1,316 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ToolRoster from '../../components/ToolRoster.astro';
+import DataNote from '@kit/components/DataNote.astro';
+import RelatedTools from '@kit/components/RelatedTools.astro';
+import { SITE, toolBySlug, toolsExcept } from '../../lib/site';
+import { POVERTY_VERIFIED, PLANS_VERIFIED } from '@data/student-aid';
+
+const tool = toolBySlug('income-driven-repayment-calculator')!;
+const canonical = `/tools/${tool.slug}`;
+const title = `${tool.title} — IBR, PAYE, ICR and RAP | ${SITE.name}`;
+const description =
+  'Compare the income-driven repayment plans you can actually enrol in. SAVE ' +
+  'ended in March 2026 and RAP replaced it in July, and which plans are open ' +
+  'to you now depends on when your loans were first disbursed.';
+
+const schema = [
+  {
+    '@context': 'https://schema.org', '@type': 'WebApplication',
+    name: tool.title, url: `${SITE.url}${canonical}`,
+    applicationCategory: 'FinanceApplication', operatingSystem: 'Any',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  },
+  {
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question', name: 'Is the SAVE plan still available?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'No. A federal court order ended the SAVE plan on 10 March 2026. Borrowers who were ' +
+          'enrolled must choose another plan. Any calculator still offering SAVE is describing ' +
+          'a plan nobody can enrol in.' },
+      },
+      {
+        '@type': 'Question', name: 'What is the Repayment Assistance Plan?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'RAP became available on 1 July 2026 and is the only income-driven plan open to ' +
+          'borrowers whose loans were all first disbursed on or after that date. It charges a ' +
+          'share of total adjusted gross income rather than discretionary income, on a sliding ' +
+          'scale from 1% to 10%, with a $10 monthly floor, a $50 reduction per dependent, and ' +
+          'forgiveness after 30 years.' },
+      },
+      {
+        '@type': 'Question', name: 'Which income-driven plans can I still use?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'If your loans were first disbursed before 1 July 2026, IBR, PAYE and ICR remain ' +
+          'available and RAP is closed to you. If every loan was first disbursed on or after ' +
+          'that date, RAP is the only income-driven plan you can use.' },
+      },
+    ],
+  },
+];
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <ToolRoster
+    title="Which repayment plan should I be on?"
+    intro="SAVE ended in March 2026 and RAP replaced it in July. Which plans are open to you now depends on when you borrowed — so that is the first thing this asks."
+    breadcrumbs={[{ href: '/', label: 'Home' }, { href: '/tools', label: 'Calculators' }, { label: 'Repayment plans' }]}
+    rosterId="idr"
+    addLabel="Add a loan"
+    columns="minmax(0,1fr) 118px 90px"
+  >
+    <Fragment slot="result">
+      <div class="scorecard__label" id="idr-label">Lowest monthly payment</div>
+      <div class="scorecard__value" id="idr-low">—</div>
+      <p class="scorecard__sub" id="idr-sub">—</p>
+      <div class="scorecard__split">
+        <div class="stat">
+          <span class="stat__label">10-year standard</span>
+          <span class="scorecard__alt" id="idr-std">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Discretionary</span>
+          <span class="scorecard__alt" id="idr-disc">—</span>
+        </div>
+      </div>
+    </Fragment>
+
+    <Fragment slot="roster">
+      <span>Loan</span><span>Balance</span><span>Rate %</span>
+    </Fragment>
+
+    <Fragment slot="options">
+      <div class="field" style="margin-top:var(--s-4)">
+        <span class="field__label"><span>When were the loans first disbursed?</span></span>
+        <div class="segmented" role="radiogroup" aria-label="When the loans were disbursed">
+          <label class="segmented__opt">
+            <input type="radio" name="idr-era" value="before" checked /><span>Before Jul 2026</span>
+          </label>
+          <label class="segmented__opt">
+            <input type="radio" name="idr-era" value="from" /><span>Jul 2026 or later</span>
+          </label>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field__label" for="idr-agi">
+          <span>Adjusted gross income</span><span class="field__hint">from your last return</span>
+        </label>
+        <div class="field__control" data-affix="pre">
+          <span class="field__affix field__affix--pre" aria-hidden="true">$</span>
+          <input class="input" id="idr-agi" type="text" inputmode="decimal" value="52000" />
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label class="field__label" for="idr-house"><span>Household size</span></label>
+          <div class="field__control">
+            <input class="input" id="idr-house" type="text" inputmode="numeric" value="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="idr-dep">
+            <span>Dependents</span><span class="field__hint">RAP only</span>
+          </label>
+          <div class="field__control">
+            <input class="input" id="idr-dep" type="text" inputmode="numeric" value="0" />
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field__label" for="idr-region"><span>Where you live</span></label>
+        <div class="field__control">
+          <select class="select" id="idr-region">
+            <option value="contiguous" selected>48 contiguous states and DC</option>
+            <option value="alaska">Alaska</option>
+            <option value="hawaii">Hawaii</option>
+          </select>
+        </div>
+      </div>
+      <label class="field" style="display:flex;gap:var(--s-2);align-items:flex-start;cursor:pointer">
+        <input type="checkbox" id="idr-pre2014" style="margin-top:4px" />
+        <span class="field__hint" style="line-height:1.4">
+          I had a federal loan balance outstanding before 1 July 2014
+        </span>
+      </label>
+    </Fragment>
+
+    <div class="verdict">
+      <div class="verdict__label">In one sentence</div>
+      <p class="verdict__text" id="idr-verdict">—</p>
+    </div>
+
+    <div id="idr-notes"></div>
+
+    <section style="margin-top:var(--s-7)">
+      <div class="section-head"><h2>Every plan, and whether you can have it</h2></div>
+      <div class="working">
+        <div class="working__head">Monthly payment, total paid, and what gets forgiven</div>
+        <div class="working__body" id="idr-table"></div>
+      </div>
+    </section>
+
+    <div style="margin-top:var(--s-6);display:grid;gap:var(--s-4)">
+      <DataNote
+        source={PLANS_VERIFIED.source}
+        sourceUrl="https://studentaid.gov/manage-loans/repayment/plans/income-driven"
+        updated={PLANS_VERIFIED.checkedOn}
+        verified={true}
+        note="Plan rules and eligibility dates checked against Federal Student Aid and the Congressional Research Service. This is the part most calculators have not caught up with: SAVE is gone, and RAP is the only income-driven plan for loans disbursed from July 2026."
+      />
+      <DataNote
+        source={POVERTY_VERIFIED.source}
+        sourceUrl="https://aspe.hhs.gov/topics/poverty-economic-mobility/poverty-guidelines"
+        updated={POVERTY_VERIFIED.checkedOn}
+        verified={true}
+        note="Discretionary income is measured against these guidelines, which HHS updates every January. A payment calculated on last year's figure comes out slightly too high."
+      />
+    </div>
+
+    <section class="prose" style="margin-top:var(--s-8)">
+      <h2>What changed, and why most calculators are wrong</h2>
+      <p>
+        The repayment landscape moved more in 2026 than in the previous decade,
+        and the internet has not caught up.
+      </p>
+      <p>
+        <strong>SAVE ended on 10 March 2026</strong> by court order. It is gone.
+        Borrowers who were on it have to choose something else. Any calculator
+        still offering SAVE — and there are many — is quoting a plan nobody can
+        enrol in.
+      </p>
+      <p>
+        <strong>RAP arrived on 1 July 2026.</strong> If every one of your loans
+        was first disbursed on or after that date, RAP is the only
+        income-driven plan available to you. There is no choice to make, and a
+        tool showing you four options is wasting your time.
+      </p>
+      <p>
+        <strong>IBR, PAYE and ICR survive</strong> — but only for loans first
+        disbursed before July 2026. Which is why the first question on this page
+        is when you borrowed, not how much.
+      </p>
+
+      <h2>Discretionary income, and what RAP changed about it</h2>
+      <p>
+        The older plans charge a share of <em>discretionary</em> income: your
+        adjusted gross income minus a multiple of the federal poverty guideline
+        for your household. IBR and PAYE protect 150% of it; ICR protects only
+        100%, which is why ICR asks for more from the same income.
+      </p>
+      <p>
+        RAP does something different. It charges a share of your
+        <strong>total</strong> AGI — nothing is protected at the bottom — on a
+        sliding scale from 1% to 10%, rising a percentage point per $10,000 of
+        income. Below $10,000 the payment is a flat $10 a month, and every
+        dependent knocks $50 off.
+      </p>
+      <p>
+        The effect is that RAP asks more of low earners than the older plans
+        did and less of some middle earners, and it stretches forgiveness from
+        twenty or twenty-five years to thirty. In exchange it does two things
+        the older plans do not: it <strong>waives the interest your payment
+        does not cover</strong>, and it matches principal so your balance falls
+        by at least what you paid, up to $50 a month. Those two provisions
+        matter enormously to anyone whose payment would otherwise not cover
+        interest.
+      </p>
+
+      <h2>The lowest payment is rarely the cheapest plan</h2>
+      <p>
+        This is the trap. A plan with a small monthly payment stretches the
+        term, and a longer term means more interest — often much more. The
+        comparison above shows monthly payment and total paid side by side
+        precisely because choosing on the monthly figure alone is how people
+        end up paying tens of thousands more.
+      </p>
+      <p>
+        The exception, and it is a large one, is forgiveness. If your balance
+        will not clear within the term, the total you pay is capped by the
+        term rather than by the balance — and then the lowest payment genuinely
+        is the best answer, because everything above it is written off. The
+        table flags which plans forgive in your situation and how much.
+      </p>
+
+      <h2>Public Service Loan Forgiveness changes the answer entirely</h2>
+      <p>
+        If you work for a government or a qualifying non-profit and are
+        pursuing PSLF, almost everything above inverts. You are aiming for 120
+        qualifying payments and forgiveness at ten years, so the goal is to pay
+        as <em>little</em> as possible along the way. Paying extra is actively
+        counterproductive: every dollar above the required payment is a dollar
+        that would otherwise have been forgiven.
+      </p>
+      <p>
+        This calculator does not model PSLF, because eligibility turns on your
+        employer and your payment history rather than on arithmetic. If you are
+        on that path, use the lowest eligible payment here and ignore the total
+        column.
+      </p>
+
+      <h2>If you were on SAVE</h2>
+      <p>
+        You have to move, and the choice is narrower than it was. For loans
+        disbursed before July 2026 that means IBR, PAYE or ICR; the comparison
+        above shows all three with the ones you qualify for marked.
+      </p>
+      <p>
+        Two things worth checking before you pick. Months spent in the SAVE
+        forbearance may or may not count toward forgiveness depending on the
+        period, so confirm your qualifying payment count with your servicer
+        rather than assuming it kept ticking. And if you are pursuing PSLF, the
+        plan you choose must be one that qualifies — which is a reason to pick
+        deliberately rather than accept whatever your servicer defaults you to.
+      </p>
+
+      <h2>Choosing between IBR and PAYE</h2>
+      <p>
+        For most borrowers who qualify for both, they compute identically —
+        10% of the same discretionary income, forgiveness at twenty years, both
+        capped at the ten-year standard payment. The comparison above will
+        usually show them tied.
+      </p>
+      <p>
+        The differences are at the edges. IBR is the only income-driven plan
+        that accepts FFEL loans. PAYE has tighter entry conditions on when you
+        first borrowed. And if you had a balance outstanding before July 2014,
+        you fall into the older IBR terms — 15% and twenty-five years — which is
+        materially worse, and is the single largest reason two borrowers with
+        identical balances see different numbers here.
+      </p>
+
+      <h2>What this model assumes</h2>
+      <p>
+        <strong>Income stays flat.</strong> In reality plans are recertified
+        annually and payments rise with income, which shortens the term and
+        increases total paid. Modelling growth would mean inventing a career,
+        so this holds income constant and says so.
+      </p>
+      <p>
+        <strong>One blended rate.</strong> Your loans are entered separately and
+        combined into a weighted average, because income-driven plans apply to
+        the aggregate federal balance rather than loan by loan.
+      </p>
+      <p>
+        <strong>ICR's cap is simplified.</strong> The statute caps ICR at a
+        twelve-year fixed payment adjusted by an income percentage factor
+        published annually. This applies the plain twelve-year figure, which is
+        close but not exact.
+      </p>
+      <p>
+        <strong>Forgiven balances may be taxable.</strong> Amounts discharged
+        under an income-driven plan have historically been treated as income in
+        the year of forgiveness, with a federal exclusion that has been extended
+        and allowed to lapse at various points. A forgiven balance of $40,000
+        can carry a five-figure tax bill. Check the position in the year you
+        expect forgiveness — it is not modelled here, and it is not small.
+      </p>
+    </section>
+
+    <RelatedTools heading="Also on the site" items={toolsExcept(tool.slug).map((t) => ({
+      href: `/tools/${t.slug}`, title: t.title, desc: t.blurb,
+    }))} />
+  </ToolRoster>
+
+  <script src="../../scripts/idr-island.ts"></script>
+</BaseLayout>

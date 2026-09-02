@@ -1,0 +1,231 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import RelatedTools from '@kit/components/RelatedTools.astro';
+import { SITE, toolBySlug, toolsExcept } from '../../lib/site';
+import { SCALES } from '../../lib/tools/scale';
+
+const tool = toolBySlug('gpa-scale-converter')!;
+const canonical = `/tools/${tool.slug}`;
+const title = `${tool.title} — US, UK, ECTS and Indian CGPA | ${SITE.name}`;
+const description =
+  'Convert a grade between the US 4.0 scale, US percentages, UK honours ' +
+  'classifications and the Indian 10-point CGPA — with a straight account of ' +
+  'why every one of these is an approximation and ECTS cannot be done at all.';
+
+const schema = [{
+  '@context': 'https://schema.org', '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question', name: 'What is a UK 2:1 in US GPA?',
+      acceptedAnswer: { '@type': 'Answer', text:
+        'Most credential evaluators place an upper second (2:1) at roughly 3.3 to 3.7 on the US ' +
+        '4.0 scale, and a First at 3.7 and above. There is no official conversion — every ' +
+        'university and evaluator publishes its own table and they disagree.' },
+    },
+    {
+      '@type': 'Question', name: 'Can I convert a UK percentage to a US percentage?',
+      acceptedAnswer: { '@type': 'Answer', text:
+        'No, and doing so is the most damaging mistake in this area. A UK 70 is a First — the ' +
+        'top classification — while a US 70 is a C. British marking rarely exceeds 80 and almost ' +
+        'never reaches the 90s. Comparing the two numbers directly converts an excellent degree ' +
+        'into a mediocre one.' },
+    },
+    {
+      '@type': 'Question', name: 'How do I convert my mark to an ECTS grade?',
+      acceptedAnswer: { '@type': 'Answer', text:
+        'You cannot, from the mark alone. ECTS grades describe your position within the cohort ' +
+        'rather than your score: A is the top 10% of students who passed, B the next 25%, C the ' +
+        'next 30%. Without knowing the distribution of the class, no mark determines an ECTS ' +
+        'grade.' },
+    },
+  ],
+}];
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <div class="page-band">
+    <div class="page">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span>
+        <a href="/tools">Calculators</a><span aria-hidden="true">/</span>
+        <span aria-current="page">Scale converter</span>
+      </nav>
+      <div class="tool-hero">
+        <h1>What is my grade on another scale?</h1>
+        <p>
+          Between the US 4.0 scale, percentages, UK honours and the Indian
+          CGPA. Every answer here is a band rather than a number, for a reason
+          the page explains.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="deskwork" data-roster="scale" data-state="init">
+      <aside class="deskwork__result">
+        <div class="scorecard">
+          <div class="scorecard__label">On the US 4.0 scale</div>
+          <div class="scorecard__value" id="sc-points">—</div>
+          <p class="scorecard__sub" id="sc-sub">—</p>
+        </div>
+        <div class="field" style="margin-top:var(--s-4)">
+          <label class="field__label" for="sc-value">
+            <span>Your grade</span><span class="field__hint">a number in the scale below</span>
+          </label>
+          <div class="field__control">
+            <input class="input" id="sc-value" type="text" inputmode="decimal" value="3.70" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="sc-from"><span>The scale it is in</span></label>
+          <div class="field__control">
+            <select class="select" id="sc-from">
+              <option value="us4" selected>US 4.0 GPA</option>
+              <option value="uspct">US percentage</option>
+              <option value="uk">UK percentage</option>
+              <option value="india10">India 10-point CGPA</option>
+            </select>
+          </div>
+        </div>
+      </aside>
+
+      <div class="deskwork__roster">
+        <div class="working" style="margin-top:0">
+          <div class="working__head">The same grade, elsewhere</div>
+          <div class="working__body" id="sc-out"></div>
+        </div>
+        <div class="verdict">
+          <div class="verdict__label">In one sentence</div>
+          <p class="verdict__text" id="sc-verdict">—</p>
+        </div>
+      </div>
+    </div>
+
+    <section class="prose" style="margin-top:var(--s-8)">
+      <h2>These are not conversions</h2>
+      <p>
+        There is no authority that defines what a UK 2:1 is worth on a US 4.0
+        scale. Every credential evaluator, every admissions office and every
+        scholarship body publishes its own table, and they disagree with each
+        other — sometimes by a full classification.
+      </p>
+      <p>
+        So the output above is a band, not a number, and the honest use of it
+        is orientation: roughly where your grade sits in another system, good
+        enough to know whether you clear a threshold comfortably or are close
+        to a line. If you are close to a line, the only answer that counts is
+        the one from the institution you are applying to.
+      </p>
+
+      <h2>The percentage trap</h2>
+      <p>
+        This is the mistake worth crossing the room to prevent. <strong>A UK 70
+        is a First</strong> — the highest degree classification — and a US 70
+        is a C.
+      </p>
+      <p>
+        British marking is compressed at the top in a way American marking is
+        not. Marks above 80 are unusual, and a mark in the 90s is close to
+        unheard of even for excellent work; the scale simply is not used that
+        way. Reading a British transcript with American expectations converts a
+        first-class degree into a mediocre one, and it happens constantly.
+      </p>
+      <p>
+        The converter above keeps the two percentage scales strictly separate
+        for that reason. Choosing "UK percentage" and choosing "US percentage"
+        for the same number gives entirely different answers, because they are
+        entirely different measurements that happen to share a symbol.
+      </p>
+
+      <h2>Why ECTS is left blank</h2>
+      <p>
+        ECTS grades do not measure your work. They measure your
+        <strong>position in the cohort</strong>: A is the top 10% of students
+        who passed, B the next 25%, C the next 30%, D the next 25%, E the last
+        10%.
+      </p>
+      <p>
+        That means no mark determines an ECTS grade. The same 68% might be an A
+        in a hard year and a C in an easy one, and without the distribution of
+        the class there is nothing to calculate. Tools that print an ECTS grade
+        from a percentage are inventing the distribution, and the page refuses
+        to do that — an empty field with an explanation is more useful than a
+        confident wrong letter.
+      </p>
+
+      <h2>Where the boundaries bite</h2>
+      <p>
+        Look at what happens near a band edge. A grade a hundredth of a point
+        below a UK First threshold converts as a 2:1; a hundredth above, a
+        First. The underlying work is indistinguishable and the label is not.
+      </p>
+      <p>
+        This is not a flaw in the converter — it is the nature of banded
+        classification, and it is why admissions offices ask for transcripts
+        rather than converted figures. If your grade sits within a couple of
+        points of a boundary in either system, assume the receiving institution
+        will place it on the less flattering side and plan accordingly.
+      </p>
+
+      <h2>What an admissions office actually does</h2>
+      <p>
+        Most do not convert at all. They read the transcript in its own terms,
+        alongside a note about the institution and its grading culture, because
+        that carries more information than any single number.
+      </p>
+      <p>
+        Where a conversion is required — usually for an automated threshold, a
+        scholarship formula or a licensing body — it is generally done by a
+        credential evaluation service that the institution names. WES, ECE and
+        SpanTran are the common ones in the United States, and their tables
+        differ from each other. If a specific evaluator is named in the
+        instructions, their answer is the only one that counts, and it is worth
+        paying for it early rather than discovering a discrepancy late.
+      </p>
+
+      <h2>Using this well</h2>
+      <p>
+        Convert in the direction you are being asked. If an American programme
+        wants a GPA, start from your own scale and read the US figure. Do not
+        convert to a percentage first and then to a GPA — every hop compounds
+        the approximation, and the percentage step is where the largest error
+        lives.
+      </p>
+      <p>
+        Quote the band rather than the midpoint when you are asked informally.
+        "Roughly a 3.5 to 3.8 equivalent" is both more honest and harder to
+        dispute than a spuriously precise 3.67, and anyone who knows the field
+        will trust it more.
+      </p>
+
+      <h2>Practical notes by system</h2>
+      <p>
+        <strong>India.</strong> The common rule of multiplying CGPA by 9.5 to
+        get a percentage comes from CBSE and does not apply universally. Many
+        universities publish their own multiplier or their own table, and some
+        use a 7-point or 8-point scale rather than 10. Check what your
+        institution actually states on the transcript.
+      </p>
+      <p>
+        <strong>United Kingdom.</strong> Classification is usually calculated
+        from the final two years, often with the final year weighted more
+        heavily, rather than from a straight average of everything. A converted
+        "GPA" from a UK degree is therefore an approximation of an
+        approximation.
+      </p>
+      <p>
+        <strong>United States.</strong> The 4.0 scale is standard but not
+        universal — some institutions award 4.3 for an A+, and weighted high
+        school scales routinely exceed 4.0 entirely. If your transcript shows a
+        figure above 4.0, it is weighted, and most conversions expect the
+        unweighted one.
+      </p>
+    </section>
+
+    <RelatedTools heading="Also on the site" items={toolsExcept(tool.slug).map((t) => ({
+      href: `/tools/${t.slug}`, title: t.title, desc: t.blurb,
+    }))} />
+  </div>
+
+  <script src="../../scripts/scale-island.ts"></script>
+</BaseLayout>

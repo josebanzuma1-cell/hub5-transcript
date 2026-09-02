@@ -7,6 +7,10 @@
 import { compute as gpa, cumulative, GRADES, LEVELS } from '../src/lib/tools/gpa.ts';
 import { computeWith as final } from '../src/lib/tools/final-grade.ts';
 import { computeWith as loans } from '../src/lib/tools/loan-payoff.ts';
+import { computeWith as cumTerms } from '../src/lib/tools/cumulative.ts';
+import { compute as convert, toPoints } from '../src/lib/tools/scale.ts';
+import { compute as idr, standardPayment } from '../src/lib/tools/idr.ts';
+import { povertyLine, PLANS } from '../src/data/student-aid.ts';
 
 let pass = 0, fail = 0;
 const chk = (n, a, e, t = 0.005) => {
@@ -190,5 +194,154 @@ ok('loan: the balance series starts at the total', Math.abs(L.avalanche.balances
 ok('loan: and ends at zero', L.avalanche.balances[L.avalanche.balances.length - 1] < 0.01);
 ok('loan: the series never rises', L.avalanche.balances.every((b, i, a) => i === 0 || b <= a[i - 1] + 0.01));
 
+
+/* ========================= cumulative GPA ========================= */
+const terms = [
+  { name: 'First year', credits: '30', gpa: '2.90' },
+  { name: 'Second year', credits: '30', gpa: '3.20' },
+];
+const C = cumTerms(terms, 3.5, 15);
+console.log('\n--- cumulative GPA (60 credits, target 3.50, 15 planned) ---');
+console.log('  cumulative', C.cumulative.toFixed(3), '| needs', C.needed.toFixed(2),
+  '|', C.outcome, '| best possible', C.bestPossible.toFixed(3));
+
+chk('cum: weighted by credits, not averaged', C.cumulative, (2.90 * 30 + 3.20 * 30) / 60);
+/* The error this tool exists to prevent. Equal credits make the two agree, so
+   the divergent case has to be tested explicitly. */
+const uneven = cumTerms([
+  { name: 'Big', credits: '60', gpa: '3.00' },
+  { name: 'Small', credits: '30', gpa: '4.00' },
+], 3.5, 0);
+chk('cum: 60 at 3.0 then 30 at 4.0 is 3.33', uneven.cumulative, (3.0 * 60 + 4.0 * 30) / 90);
+ok('cum: which is NOT the average of 3.5', Math.abs(uneven.cumulative - 3.5) > 0.15);
+
+chk('cum: solving for the coming term', C.needed, (3.5 * 75 - (2.90 * 30 + 3.20 * 30)) / 15);
+ok('cum: a 3.5 is out of reach from 3.05 with 15 credits', C.outcome === 'impossible');
+chk('cum: best possible assumes a perfect term',
+  C.bestPossible, ((2.90 * 30 + 3.20 * 30) + 4 * 15) / 75);
+ok('cum: and the best possible is below the target', C.bestPossible < 3.5);
+
+const reachable = cumTerms(terms, 3.2, 15);
+ok('cum: a nearer target is reachable', reachable.outcome === 'reachable');
+ok('cum: and needs at most 4.0', reachable.needed <= 4);
+/* 2.5 still needs 0.30 next term — a zero term would drop below it. A
+   target is only 'already there' when even a zero cannot lose it. */
+const held = cumTerms(terms, 2.4, 15);
+ok('cum: a target already passed says so', held.outcome === 'already-there');
+ok('cum: with no planned credits there is nothing to solve', cumTerms(terms, 3.5, 0).outcome === 'no-plan');
+chk('cum: rows without a GPA are skipped',
+  cumTerms([...terms, { name: 'Planned', credits: '15', gpa: '' }], 3.5, 15).counted, 2, 0);
+chk('cum: an empty record is 0, not NaN', cumTerms([], 3.5, 15).cumulative, 0);
+
+/* Dropping credits raises the bar rather than lowering it — the note on the
+   page claims this, so it had better be true. */
+ok('cum: fewer planned credits need a higher average',
+  cumTerms(terms, 3.3, 9).needed > cumTerms(terms, 3.3, 18).needed);
+
+/* ========================== scale converter ========================== */
+console.log('\n--- scale converter ---');
+const uk70 = toPoints('70', 'uk');
+const us70 = toPoints('70', 'uspct');
+console.log('  UK 70 =>', uk70.toFixed(2), 'pts | US 70 =>', us70.toFixed(2), 'pts');
+
+/* The whole reason the tool exists: a UK 70 is a First, a US 70 is a C. If
+   these ever converge, the converter has started lying about the thing it was
+   built to prevent. */
+ok('scale: a UK 70 is a First', uk70 >= 3.7);
+ok('scale: a US 70 is not', us70 < 2.0);
+ok('scale: and they are far apart', uk70 - us70 > 1.5);
+
+chk('scale: UK 70 matches US 3.7', uk70, 3.70, 0.02);
+ok('scale: ECTS cannot be derived from a mark',
+  convert('3.7', 'us4').conversions.find((c) => c.scale === 'ects').notDerivable);
+ok('scale: and returns nothing rather than guessing',
+  convert('3.7', 'us4').conversions.find((c) => c.scale === 'ects').display === null);
+ok('scale: rubbish input is rejected', !convert('abc', 'us4').valid);
+ok('scale: out-of-range input is rejected', !convert('7', 'us4').valid);
+ok('scale: 4.3 is clamped to the 4.0 ceiling', convert('4.3', 'us4').points === 4);
+
+/* ==================== income-driven repayment ==================== */
+const borrower = {
+  balance: 42_000, rate: 6.53, agi: 52_000, householdSize: 1, dependents: 0,
+  region: 'contiguous', borrowedFromJuly2026: false, preJuly2014: false,
+};
+const R = idr(borrower);
+console.log('\n--- income-driven repayment ($42k at 6.53%, $52k AGI, household of 1) ---');
+console.log('  poverty line', money(R.povertyLine), '| discretionary', money(R.discretionary),
+  '| 10-year standard', money(R.standard.monthly) + '/mo');
+for (const r of R.results) {
+  console.log('   ', r.plan.short.padEnd(12), r.eligible
+    ? money(r.monthly).padStart(6) + '/mo  total ' + money(r.totalPaid).padStart(8)
+      + (r.forgiven ? '  forgiven ' + money(r.forgivenAmount) : '')
+    : 'not available');
+}
+
+/* The 2026 figures, pinned. HHS reissues these every January and the plan
+   rules changed twice in 2026, so a stale copy is the likeliest failure. */
+chk('idr: 2026 poverty line, household of one', povertyLine(1), 15_960, 0);
+chk('idr: household of four', povertyLine(4), 33_000, 0);
+chk('idr: Alaska runs higher', povertyLine(1, 'alaska'), 19_950, 0);
+chk('idr: Hawaii runs higher', povertyLine(1, 'hawaii'), 18_360, 0);
+chk('idr: discretionary is AGI less 150% of the guideline', R.discretionary, 52_000 - 15_960 * 1.5);
+
+/* Eligibility is the new thing and the whole reason the tool exists. */
+ok('idr: SAVE is not offered', !PLANS.some((p) => p.id === 'save'));
+ok('idr: RAP is closed to loans disbursed before July 2026',
+  !R.results.find((r) => r.plan.id === 'rap').eligible);
+const newBorrower = idr({ ...borrower, borrowedFromJuly2026: true });
+ok('idr: and is the ONLY plan for loans from July 2026',
+  newBorrower.eligible.length === 1 && newBorrower.eligible[0].plan.id === 'rap');
+ok('idr: the older plans close to those borrowers',
+  newBorrower.results.filter((r) => r.plan.id !== 'rap').every((r) => !r.eligible));
+ok('idr: every ineligible plan explains why',
+  R.results.filter((r) => !r.eligible).every((r) => r.ineligibleBecause.length > 20));
+
+/* Borrowing before July 2014 puts you on the worse IBR terms — 15% and 25
+   years — which is the largest single reason two identical balances differ. */
+const older = idr({ ...borrower, preJuly2014: true });
+ok('idr: a pre-2014 borrower gets the older IBR', older.results.find((r) => r.plan.id === 'ibr-old').eligible);
+ok('idr: and not the newer one', !older.results.find((r) => r.plan.id === 'ibr-new').eligible);
+ok('idr: the older IBR costs more each month',
+  older.results.find((r) => r.plan.id === 'ibr-old').monthly
+    > R.results.find((r) => r.plan.id === 'ibr-new').monthly);
+
+/* No income-driven payment should ever exceed the ten-year standard. ICR is
+   the one that can, which is why it carries a twelve-year cap. */
+ok('idr: no eligible plan asks more than the standard plan',
+  R.eligible.every((r) => r.monthly <= R.standard.monthly + 0.5));
+chk('idr: the standard payment amortises over ten years', R.standard.months, 120, 1);
+chk('idr: standardPayment agrees with the simulation',
+  standardPayment(42_000, 6.53), R.standard.monthly, 0.01);
+
+/* RAP's schedule, which is a band table rather than a discretionary formula. */
+const rapLow = idr({ ...borrower, borrowedFromJuly2026: true, agi: 22_000 }).eligible[0];
+const rapHigh = idr({ ...borrower, borrowedFromJuly2026: true, agi: 120_000 }).eligible[0];
+chk('idr: RAP takes 2% of a $22,000 AGI', rapLow.monthly, (22_000 * 0.02) / 12, 0.01);
+chk('idr: and 10% above $100,000', rapHigh.monthly, (120_000 * 0.10) / 12, 0.01);
+/* Tested at an income high enough that the deduction does not hit the floor —
+   at $22,000 two dependents would push the payment negative, which is what the
+   floor is for and is asserted separately below. */
+const rapMid = idr({ ...borrower, borrowedFromJuly2026: true, agi: 60_000 }).eligible[0];
+const rapDeps = idr({ ...borrower, borrowedFromJuly2026: true, agi: 60_000, dependents: 2 }).eligible[0];
+chk('idr: each dependent takes $50 off', rapDeps.monthly, rapMid.monthly - 100, 0.01);
+ok('idr: and the deduction cannot drive a payment negative',
+  idr({ ...borrower, borrowedFromJuly2026: true, agi: 22_000, dependents: 2 }).eligible[0].monthly === 10);
+const rapFloor = idr({ ...borrower, borrowedFromJuly2026: true, agi: 12_000, dependents: 4 }).eligible[0];
+chk('idr: but never below the $10 floor', rapFloor.monthly, 10, 0.01);
+
+/* A payment below the interest is a real state — and RAP is the only plan
+   that stops the balance growing when it happens. */
+const broke = idr({ ...borrower, agi: 24_000 });
+ok('idr: a low income leaves payments below interest',
+  broke.eligible.some((r) => r.negativelyAmortising));
+ok('idr: zero discretionary income gives a zero payment',
+  idr({ ...borrower, agi: 20_000 }).results.find((r) => r.plan.id === 'ibr-new').monthly === 0);
+
+// Forgiveness terms must match the plan definitions.
+for (const r of R.results) {
+  ok(`idr: ${r.plan.short} forgives at ${r.plan.forgivenessYears} years`,
+    !r.forgiven || r.months === r.plan.forgivenessYears * 12);
+}
+chk('idr: an empty balance owes nothing', idr({ ...borrower, balance: 0 }).standard.monthly, 0);
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

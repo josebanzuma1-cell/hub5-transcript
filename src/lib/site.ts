@@ -54,6 +54,39 @@ export const TOOLS: Tool[] = [
     planId: 23, built: true, group: 'grades',
   },
   {
+    slug: 'cumulative-gpa-calculator',
+    title: 'Cumulative GPA Calculator',
+    nav: 'Cumulative GPA',
+    question: 'What will my GPA be after this term?',
+    blurb:
+      'Roll a new term into an existing record. You cannot average two GPAs — ' +
+      'they have to be weighted by credits, and the difference is larger than ' +
+      'most people expect.',
+    planId: 21, built: true, group: 'grades',
+  },
+  {
+    slug: 'gpa-scale-converter',
+    title: 'GPA Scale Converter',
+    nav: 'Scale converter',
+    question: 'What is my grade on another scale?',
+    blurb:
+      'Between the US 4.0 scale, percentages, UK honours classifications, ECTS ' +
+      'grades and the Indian 10-point CGPA — with a clear statement of why ' +
+      'every one of these conversions is an approximation.',
+    planId: 22, built: true, group: 'grades',
+  },
+  {
+    slug: 'income-driven-repayment-calculator',
+    title: 'Income-Driven Repayment Comparison',
+    nav: 'Repayment plans',
+    question: 'Which repayment plan should I be on?',
+    blurb:
+      'SAVE ended in March 2026 and RAP replaced it in July. This compares the ' +
+      'plans you can actually enrol in — which depends on when you borrowed — ' +
+      'rather than the ones calculators still list.',
+    planId: 26, built: true, group: 'money',
+  },
+  {
     slug: 'student-loan-payoff-calculator',
     title: 'Student Loan Payoff Calculator',
     nav: 'Loan payoff',
