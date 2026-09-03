@@ -10,7 +10,10 @@ import { computeWith as loans } from '../src/lib/tools/loan-payoff.ts';
 import { computeWith as cumTerms } from '../src/lib/tools/cumulative.ts';
 import { compute as convert, toPoints } from '../src/lib/tools/scale.ts';
 import { compute as idr, standardPayment } from '../src/lib/tools/idr.ts';
-import { povertyLine, PLANS } from '../src/data/student-aid.ts';
+import { povertyLine, PLANS, GIFT_2026 } from '../src/data/student-aid.ts';
+import { compute as cost, netPriceFor } from '../src/lib/tools/college-cost.ts';
+import { compute as sav, requiredMonthly } from '../src/lib/tools/savings-529.ts';
+import { COLLEGES } from '../src/data/colleges.ts';
 
 let pass = 0, fail = 0;
 const chk = (n, a, e, t = 0.005) => {
@@ -343,5 +346,203 @@ for (const r of R.results) {
     !r.forgiven || r.months === r.plan.forgivenessYears * 12);
 }
 chk('idr: an empty balance owes nothing', idr({ ...borrower, balance: 0 }).standard.monthly, 0);
+
+/* ======================= 27: true cost of college ======================= */
+/* Nothing here is snapshotted from the model. Every expectation is arrived at
+   independently — by closed form where the model iterates, and by hand where
+   the arithmetic is short enough to check on paper. */
+const costBase = {
+  netPricePerYear: 20_000, years: 4, scholarships: 0, contribution: 0,
+  inflation: 0, loanRate: 6, loanYears: 10, earnings10: 60_000,
+};
+const CC = cost(costBase);
+console.log('\n--- true cost of college ($20k net, four years, 6%) ---');
+console.log('  total cost', money(CC.totalCost), '| borrowed', money(CC.totalBorrowed),
+  '| owed at graduation', money(CC.debtAtGraduation), '| monthly', money(CC.monthlyPayment));
+
+chk('cost: flat price, four years', CC.totalCost, 80_000);
+chk('cost: borrowed is the unaided gap, uninflated by interest', CC.totalBorrowed, 80_000);
+
+/* Interest starts on each year's borrowing when it is drawn, so the balance at
+   graduation is the sum of each year's draw compounded for the years that
+   remain: 20000 * (1.06 + 1.06^2 + 1.06^3 + 1.06^4). Worked by hand: 92,741.86. */
+chk('cost: each year of borrowing compounds from the year it is drawn',
+  CC.debtAtGraduation, 20_000 * (1.06 + 1.06 ** 2 + 1.06 ** 3 + 1.06 ** 4), 0.01);
+chk('cost: which is 92,741.86', CC.debtAtGraduation, 92_741.8592, 0.01);
+ok('cost: so more is owed at graduation than was borrowed',
+  CC.debtAtGraduation > CC.totalBorrowed);
+
+/* The payment is checked by amortising it rather than by re-running the same
+   formula — paying it for the full term must clear the balance exactly. */
+let bal = CC.debtAtGraduation;
+for (let m = 0; m < costBase.loanYears * 12; m++) bal = bal * (1 + 0.06 / 12) - CC.monthlyPayment;
+chk('cost: the payment amortises the balance to zero over the term', bal, 0, 0.01);
+chk('cost: total repaid is every payment', CC.totalRepaid, CC.monthlyPayment * 120, 0.01);
+chk('cost: interest is what is repaid above the balance',
+  CC.totalInterest, CC.totalRepaid - CC.debtAtGraduation, 0.01);
+
+// Inflation applies from the second year, not the first.
+const infl = cost({ ...costBase, inflation: 5 });
+chk('cost: year one is not inflated', infl.yearly[0], 20_000);
+chk('cost: year four is three years of inflation', infl.yearly[3], 20_000 * 1.05 ** 3);
+chk('cost: which is $23,152.50', infl.yearly[3], 23_152.5, 0.01);
+ok('cost: inflation raises the total', infl.totalCost > CC.totalCost);
+
+// Aid is applied per year, and cannot push borrowing below zero.
+const aided = cost({ ...costBase, scholarships: 5_000, contribution: 5_000 });
+chk('cost: aid reduces the gap year by year', aided.totalBorrowed, 40_000);
+chk('cost: scholarships total across the degree', aided.totalScholarships, 20_000);
+chk('cost: contributions total across the degree', aided.totalContribution, 20_000);
+
+const covered = cost({ ...costBase, scholarships: 15_000, contribution: 10_000 });
+chk('cost: aid above the price borrows nothing, never a negative', covered.totalBorrowed, 0);
+chk('cost: and owes nothing at graduation', covered.debtAtGraduation, 0);
+chk('cost: and pays nothing monthly', covered.monthlyPayment, 0);
+chk('cost: and pays no interest', covered.totalInterest, 0);
+
+// The earnings comparisons, and the fact that they vanish when earnings are unknown.
+chk('cost: total cost as years of median earnings', CC.costAsYearsOfEarnings, 80_000 / 60_000);
+chk('cost: payment as a share of monthly earnings',
+  CC.paymentShareOfIncome, (CC.monthlyPayment / 5_000) * 100, 0.01);
+ok('cost: debt above first-year earnings is flagged', CC.debtExceedsEarnings === true);
+ok('cost: debt below it is not',
+  cost({ ...costBase, netPricePerYear: 8_000 }).debtExceedsEarnings === false);
+
+const blind = cost({ ...costBase, earnings10: null });
+ok('cost: unknown earnings leaves every earnings figure null',
+  blind.earnings10 === null && blind.paymentShareOfIncome === null
+  && blind.costAsYearsOfEarnings === null && blind.debtExceedsEarnings === null);
+ok('cost: and a zero is treated as unknown, not as zero earnings',
+  cost({ ...costBase, earnings10: 0 }).earnings10 === null);
+
+/* The page's FAQ claims borrowing one year of salary costs about 13% of gross
+   monthly income, and that the 10% ceiling arrives at about three-quarters of
+   a year's salary. Both are the model's own arithmetic, so both are checked. */
+const atSalary = cost({
+  ...costBase, netPricePerYear: 15_000, years: 1, inflation: 0, loanRate: 6, earnings10: 15_900,
+});
+chk('cost: borrowing one year of salary takes ~13% of gross',
+  atSalary.paymentShareOfIncome, 13.32, 0.15);
+const atThreeQuarters = cost({ ...costBase, netPricePerYear: 11_250, years: 1, earnings10: 15_900 });
+chk('cost: three-quarters of salary is where 10% is crossed',
+  atThreeQuarters.paymentShareOfIncome, 10, 0.15);
+
+// A degree is at least one year long however the field is filled in.
+chk('cost: zero years is treated as one', cost({ ...costBase, years: 0 }).yearly.length, 1, 0);
+chk('cost: fractional years round', cost({ ...costBase, years: 4.4 }).yearly.length, 4, 0);
+
+/* netPriceFor is the join between the reader's income band and the imported
+   table, and the fallback matters: plenty of institutions publish an average
+   but not a full breakdown. */
+const withBands = {
+  slug: 't', name: 'T', netPrice: 18_000,
+  byIncome: { low: 9_000, lowMid: null, mid: 14_000, upperMid: null, high: 25_000 },
+};
+chk('cost: a published band is used', netPriceFor(withBands, 'low'), 9_000);
+chk('cost: a missing band falls back to the average', netPriceFor(withBands, 'lowMid'), 18_000);
+chk('cost: the top band is used', netPriceFor(withBands, 'high'), 25_000);
+
+/* The claim the whole page rests on: the same institution charges different
+   families very different prices. If that stopped being true of the imported
+   data, the page would be making a point its own numbers do not support. */
+const spread = COLLEGES
+  .filter((c) => c.byIncome.low != null && c.byIncome.high != null)
+  .map((c) => c.byIncome.high - c.byIncome.low)
+  .sort((a, b) => b - a);
+console.log(`  widest published low-to-high gap ${money(spread[0])}/yr,`,
+  `median ${money(spread[Math.floor(spread.length / 2)])}/yr`);
+ok('cost: the imported data shows a real price spread by income',
+  spread.length > 100 && spread[Math.floor(spread.length / 2)] > 5_000);
+
+/* ========================= 28: 529 / savings plan ========================= */
+const savPlan = {
+  currentBalance: 5_000, monthlyContribution: 150, lumpSum: 0, yearsUntilStart: 18,
+  annualReturn: 6, annualCost: 30_000, yearsOfStudy: 4, costInflation: 5, targetShare: 33,
+};
+const SV = sav(savPlan);
+console.log('\n--- 529 planner (18 years, $150/mo, 6% return) ---');
+console.log('  projected', money(SV.projectedBalance), '| target', money(SV.target),
+  '| shortfall', money(SV.shortfall), '| needs', money(SV.requiredMonthly) + '/mo');
+
+/* The projection loops month by month; the check uses the closed form for a
+   growing annuity, which is a genuinely different computation. */
+const mRate = 0.06 / 12, mN = 18 * 12;
+chk('529: the projection matches the annuity closed form',
+  SV.projectedBalance, 5_000 * (1 + mRate) ** mN + 150 * (((1 + mRate) ** mN - 1) / mRate), 0.01);
+chk('529: contributions are principal only', SV.totalContributed, 5_000 + 150 * 12 * 18);
+chk('529: growth is everything above what was paid in',
+  SV.growth, SV.projectedBalance - SV.totalContributed, 0.01);
+/* At 6% over eighteen years growth does NOT overtake contributions — the
+   multiple on a monthly annuity is only about 1.8 — but it gets close, which
+   is the fact the page is built on. */
+ok('529: roughly half the ending balance is growth, not money paid in',
+  SV.growth / SV.projectedBalance > 0.4 && SV.growth / SV.projectedBalance < 0.6);
+
+/* Cost inflates until the degree starts and then again each year of it. The
+   trap is treating four years as four times year one, which understates it. */
+chk('529: the cost of the degree sums each inflated year',
+  SV.futureCost, 30_000 * (1.05 ** 18 + 1.05 ** 19 + 1.05 ** 20 + 1.05 ** 21), 0.01);
+ok('529: which is more than four times the first year',
+  SV.futureCost > 4 * 30_000 * 1.05 ** 18);
+chk('529: the target is the chosen share of it', SV.target, SV.futureCost * 0.33, 0.01);
+chk('529: shortfall is the gap to the target', SV.shortfall, SV.target - SV.projectedBalance, 0.01);
+ok('529: a shortfall means it is not covered', SV.covered === false && SV.surplus === 0);
+
+/* The strongest check available: feed the required contribution back in and
+   the projection must land on the target. */
+const solved = sav({ ...savPlan, monthlyContribution: SV.requiredMonthly });
+chk('529: contributing the required amount lands exactly on the target',
+  solved.projectedBalance, SV.target, 0.01);
+ok('529: and then it is covered', solved.covered === true);
+chk('529: with no shortfall left', solved.shortfall, 0, 0.01);
+
+const over = sav({ ...savPlan, monthlyContribution: SV.requiredMonthly + 50 });
+ok('529: contributing more produces a surplus, not a negative shortfall',
+  over.surplus > 0 && over.shortfall === 0 && over.covered === true);
+
+// Waiting is the point of the page, so the figure behind it is pinned.
+chk('529: the cost of waiting is the extra needed over one fewer year',
+  SV.costOfWaitingAYear,
+  requiredMonthly(SV.target, 5_000, 17, 6) - requiredMonthly(SV.target, 5_000, 18, 6), 0.01);
+ok('529: and waiting always costs more, never less', SV.costOfWaitingAYear > 0);
+console.log(`  waiting one year adds ${money(SV.costOfWaitingAYear)}/mo to what is needed`);
+
+// A lump sum today is not the same as the same money contributed later.
+const lump = sav({ ...savPlan, lumpSum: 20_000 });
+ok('529: a lump sum today compounds for the whole period',
+  lump.projectedBalance - SV.projectedBalance > 20_000 * 1.9);
+ok('529: and lowers what is needed monthly', lump.requiredMonthly < SV.requiredMonthly);
+
+// The degenerate cases have to behave rather than divide by zero.
+const flat = sav({ ...savPlan, annualReturn: 0, currentBalance: 0, yearsUntilStart: 10 });
+chk('529: a zero return is just the contributions', flat.projectedBalance, 150 * 120, 0.01);
+chk('529: and the required amount divides evenly',
+  flat.requiredMonthly, flat.target / 120, 0.01);
+const now = sav({ ...savPlan, yearsUntilStart: 0 });
+chk('529: starting today projects the opening balance', now.projectedBalance, 5_000);
+chk('529: and the whole remaining target is needed outright',
+  now.requiredMonthly, now.target - 5_000, 0.01);
+chk('529: with no year to wait, waiting costs nothing', now.costOfWaitingAYear, 0);
+chk('529: a funded target needs nothing more',
+  requiredMonthly(10_000, 50_000, 10, 6), 0);
+
+chk('529: one balance is recorded per year, plus the opening one',
+  SV.balances.length, 19, 0);
+chk('529: the first balance is the opening one', SV.balances[0], 5_000);
+chk('529: the last is the projection', SV.balances[18], SV.projectedBalance, 0.01);
+ok('529: the balance never falls with a positive return and contributions',
+  SV.balances.every((b, i) => i === 0 || b > SV.balances[i - 1]));
+
+/* The gift figures come from the data file and drive a warning on the page,
+   so the boundary is checked on both sides of it. */
+chk('529: the exclusion is the verified figure', SV.annualExclusion, GIFT_2026.annualExclusion);
+chk('529: the five-year election is five of them',
+  SV.fiveYearElection, GIFT_2026.annualExclusion * 5);
+ok('529: contributing under the exclusion raises no flag',
+  sav({ ...savPlan, monthlyContribution: Math.floor(GIFT_2026.annualExclusion / 12) })
+    .overExclusion === false);
+ok('529: contributing over it does',
+  sav({ ...savPlan, monthlyContribution: Math.ceil(GIFT_2026.annualExclusion / 12) + 1 })
+    .overExclusion === true);
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

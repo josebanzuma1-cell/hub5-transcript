@@ -1,0 +1,181 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CollegeCostTool from '../../components/CollegeCostTool.astro';
+import RelatedTools from '@kit/components/RelatedTools.astro';
+import { SITE, toolBySlug, toolsExcept } from '../../lib/site';
+import { COLLEGES } from '@data/colleges';
+
+const tool = toolBySlug('college-cost-calculator')!;
+const canonical = `/tools/${tool.slug}`;
+const title = `${tool.title} — Net Price by Income | ${SITE.name}`;
+const description =
+  `What a degree actually costs at ${COLLEGES.length} large universities, using the net ` +
+  'price families at your income level really pay rather than the sticker price ' +
+  'almost nobody does — plus the debt, the repayment and what it returns.';
+
+const schema = [{
+  '@context': 'https://schema.org', '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question', name: 'What is net price and how is it different from tuition?',
+      acceptedAnswer: { '@type': 'Answer', text:
+        'Net price is what students actually pay after grant aid and scholarships are deducted ' +
+        'from the full cost of attendance. It is often less than half the sticker price, and it ' +
+        'varies by family income at the same institution — sometimes by tens of thousands of ' +
+        'dollars a year.' },
+    },
+    {
+      '@type': 'Question', name: 'How much student debt is too much?',
+        acceptedAnswer: { '@type': 'Answer', text:
+          'The rule of thumb most advisers use is to keep total borrowing below your expected ' +
+          'first-year salary. It is worth knowing what that threshold actually costs: borrowing ' +
+          'exactly one year of salary takes about 13% of gross monthly income on a standard ' +
+          'ten-year repayment, and the more commonly quoted 10% ceiling is crossed earlier, at ' +
+          'roughly three-quarters of a year of salary. The rule marks a boundary, not a ' +
+          'comfortable target.' },
+    },
+  ],
+}];
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <CollegeCostTool
+    title="What will this degree actually cost?"
+    intro="The sticker price is not the price. Pick an institution and your family income band to see what people in your position actually pay, and what borrowing the rest would mean."
+    breadcrumbs={[{ href: '/', label: 'Home' }, { href: '/tools', label: 'Calculators' }, { label: 'College cost' }]}
+  >
+    <section class="prose" style="margin-top:var(--s-8)">
+      <h2>Why the sticker price is close to meaningless</h2>
+      <p>
+        The number on the website — cost of attendance — is what a family
+        paying full freight would spend. Most do not. Grant aid, institutional
+        scholarships and federal grants come off it before anyone writes a
+        cheque, and what remains is the <strong>net price</strong>.
+      </p>
+      <p>
+        The gap is not a rounding difference. At well-endowed institutions the
+        net price for a lower-income family can be under a third of the
+        sticker, and a private university with a large endowment routinely
+        works out cheaper than the public one down the road. Comparing sticker
+        prices between institutions tells you almost nothing about which will
+        cost you more.
+      </p>
+
+      <h2>The same degree, different prices</h2>
+      <p>
+        This is the part that surprises people most. Net price varies by
+        <em>family income</em> at the same institution, and the published
+        figures show gaps of tens of thousands of dollars a year between the
+        lowest and highest income bands.
+      </p>
+      <p>
+        That is not a discount you have to negotiate or a scholarship you have
+        to win — it is the average of what families in that band actually paid,
+        published by the Department of Education. The table on this page shows
+        every band for the institution you have selected, which is usually more
+        informative than any single figure.
+      </p>
+
+      <h2>Borrowing, and the number that matters</h2>
+      <p>
+        Interest on unsubsidised loans starts the day the money is drawn, not
+        at graduation. The calculation here compounds each year's borrowing
+        from the year it happens, which is why the debt at graduation is
+        higher than the sum of what you borrowed.
+      </p>
+      <p>
+        The benchmark worth holding onto: <strong>keep total borrowing below
+        your expected first-year salary.</strong> Below that line, standard
+        ten-year repayment is uncomfortable but manageable. Above it, the
+        payment starts taking more than about a tenth of your income, and an
+        income-driven plan stops being a fallback and becomes the plan.
+      </p>
+
+      <h2>Completion is the risk nobody prices</h2>
+      <p>
+        Every figure here assumes you graduate. Not finishing is the worst
+        financial outcome available in higher education — the debt survives in
+        full and the earnings premium does not arrive at all.
+      </p>
+      <p>
+        Completion rates vary enormously between institutions with similar
+        sticker prices, and at some of the places in this data fewer than half
+        of students finish within six years. It is worth weighting that at
+        least as heavily as the price when comparing two options.
+      </p>
+
+      <h2>Where these figures come from</h2>
+      <p>
+        Net price, earnings and completion are published by the US Department
+        of Education through the College Scorecard, collected from institutions
+        themselves and from federal tax records. They are not estimates or
+        survey responses.
+      </p>
+      <p>
+        One caveat worth knowing. The Scorecard publishes each metric on its
+        own schedule, so the "latest" net price and the "latest" earnings
+        figure may describe different cohorts — earnings ten years after entry
+        necessarily describe people who enrolled a decade ago, at prices from a
+        decade ago. Fine for comparing institutions against each other, which
+        is what this page is for. Not a forecast of what you will earn.
+      </p>
+
+      <h2>Reading the earnings figure honestly</h2>
+      <p>
+        Median earnings ten years after entry is the most useful single outcome
+        number published, and it is still crude. It includes people who did not
+        graduate. It reflects the local labour market as much as the education.
+        And it is a median, so half of graduates earn less.
+      </p>
+      <p>
+        Use it as a floor for sanity-checking rather than as a projection. If a
+        degree's total cost exceeds two or three times the institution's median
+        earnings, the arithmetic will be uncomfortable regardless of how good
+        the programme is. If it is well under one year of median earnings, the
+        price is not the thing to worry about.
+      </p>
+
+      <h2>Two things worth doing before you decide</h2>
+      <p>
+        <strong>Run the institution's own net price calculator.</strong> Every
+        college receiving federal aid is required to publish one, and it asks
+        about your actual circumstances rather than putting you in a band. That
+        is the difference between an average and an estimate of your award.
+      </p>
+      <p>
+        <strong>Compare the same student across institutions, not the
+        institutions.</strong> The useful question is never "which is cheaper"
+        but "which is cheaper for me" — and because net price moves so sharply
+        with income, the answer frequently inverts the ranking you would get
+        from sticker prices or league tables.
+      </p>
+
+      <h2>What this does not model</h2>
+      <p>
+        <strong>Your actual aid package.</strong> These are institutional
+        averages by income band. Your own award depends on assets, family size,
+        the number of siblings in college, and the institution's own formula.
+        Run the college's net price calculator — every institution receiving
+        federal aid is required to publish one — before treating any figure
+        here as yours.
+      </p>
+      <p>
+        <strong>Earnings by major.</strong> The earnings figure is the median
+        across the whole institution ten years after entry. Variation by field
+        of study within one university routinely exceeds the variation between
+        universities, so an institutional median is a weak guide to what a
+        particular degree returns.
+      </p>
+      <p>
+        <strong>Living costs beyond the published figure</strong>, changes to
+        aid between years, and the possibility that a five-year path costs
+        five years rather than four.
+      </p>
+    </section>
+
+    <RelatedTools heading="Once you know the number" items={toolsExcept(tool.slug).map((t) => ({
+      href: `/tools/${t.slug}`, title: t.title, desc: t.blurb,
+    }))} />
+  </CollegeCostTool>
+
+  <script src="../../scripts/cost-island.ts"></script>
+</BaseLayout>

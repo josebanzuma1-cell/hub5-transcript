@@ -1,0 +1,286 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ToolRoster from '../../components/ToolRoster.astro';
+import Chart from '@kit/components/Chart.astro';
+import DataNote from '@kit/components/DataNote.astro';
+import RelatedTools from '@kit/components/RelatedTools.astro';
+import { SITE, toolBySlug, toolsExcept } from '../../lib/site';
+import { GIFT_VERIFIED, GIFT_2026 } from '@data/student-aid';
+
+const tool = toolBySlug('529-savings-calculator')!;
+const canonical = `/tools/${tool.slug}`;
+const title = `${tool.title} — What to Save, and When | ${SITE.name}`;
+const description =
+  'What your 529 contributions grow to, what the degree will cost by the time ' +
+  'it starts, and what waiting a year costs you. Aims at a realistic share of ' +
+  'the total rather than the whole intimidating number.';
+
+const schema = [{
+  '@context': 'https://schema.org', '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question', name: 'How much can I contribute to a 529 each year?',
+      acceptedAnswer: { '@type': 'Answer', text:
+        `There is no federal annual contribution limit. What there is instead is the gift tax ` +
+        `annual exclusion, $${GIFT_2026.annualExclusion.toLocaleString('en-US')} per donor per ` +
+        `beneficiary in 2026. Contribute more and you are making a reportable gift, which for ` +
+        `most families means filing a form rather than paying tax. States set their own ` +
+        `aggregate balance caps, commonly between $235,000 and $600,000.` },
+    },
+    {
+      '@type': 'Question', name: 'What is 529 superfunding?',
+      acceptedAnswer: { '@type': 'Answer', text:
+        `A five-year election lets a donor front-load five years of annual exclusions at once — ` +
+        `$${GIFT_2026.fiveYearElection.toLocaleString('en-US')} per beneficiary in 2026 — and ` +
+        `treat it as spread across five years for gift tax purposes. It puts the money to work ` +
+        `earlier, which is where almost all of the benefit comes from.` },
+    },
+  ],
+}];
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <ToolRoster
+    title="How much should I be saving?"
+    intro="Compound growth does most of the work here, and every year of delay costs far more than the contributions you skipped. This shows both."
+    breadcrumbs={[{ href: '/', label: 'Home' }, { href: '/tools', label: 'Calculators' }, { label: '529 savings' }]}
+    rosterId="sav"
+    addLabel="Add"
+    columns="minmax(0,1fr) 118px 110px"
+  >
+    <Fragment slot="result">
+      <div class="scorecard__label" id="sav-label">Projected by the first year</div>
+      <div class="scorecard__value" id="sav-total">—</div>
+      <p class="scorecard__sub" id="sav-sub">—</p>
+      <div class="scorecard__split">
+        <div class="stat">
+          <span class="stat__label">Target</span>
+          <span class="scorecard__alt" id="sav-target">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label" id="sav-gap-label">Shortfall</span>
+          <span class="scorecard__alt" id="sav-gap">—</span>
+        </div>
+      </div>
+    </Fragment>
+
+    <Fragment slot="roster">
+      <span>Year</span><span>Balance</span><span>Of which growth</span>
+    </Fragment>
+
+    <Fragment slot="options">
+      <div class="field-grid" style="margin-top:var(--s-4)">
+        <div class="field">
+          <label class="field__label" for="sav-bal"><span>Saved so far</span></label>
+          <div class="field__control" data-affix="pre">
+            <span class="field__affix field__affix--pre" aria-hidden="true">$</span>
+            <input class="input" id="sav-bal" type="text" inputmode="decimal" value="5000" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="sav-mo"><span>Each month</span></label>
+          <div class="field__control" data-affix="pre">
+            <span class="field__affix field__affix--pre" aria-hidden="true">$</span>
+            <input class="input" id="sav-mo" type="text" inputmode="decimal" value="250" />
+          </div>
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label class="field__label" for="sav-lump">
+            <span>Lump sum now</span><span class="field__hint">e.g. a gift</span>
+          </label>
+          <div class="field__control" data-affix="pre">
+            <span class="field__affix field__affix--pre" aria-hidden="true">$</span>
+            <input class="input" id="sav-lump" type="text" inputmode="decimal" value="0" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="sav-years"><span>Years until it starts</span></label>
+          <div class="field__control">
+            <input class="input" id="sav-years" type="text" inputmode="numeric" value="15" />
+          </div>
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label class="field__label" for="sav-cost">
+            <span>Cost a year</span><span class="field__hint">today's money</span>
+          </label>
+          <div class="field__control" data-affix="pre">
+            <span class="field__affix field__affix--pre" aria-hidden="true">$</span>
+            <input class="input" id="sav-cost" type="text" inputmode="decimal" value="25000" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="sav-study"><span>Years of study</span></label>
+          <div class="field__control">
+            <input class="input" id="sav-study" type="text" inputmode="numeric" value="4" />
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field__label" for="sav-share">
+          <span>Share to cover from savings</span>
+          <span class="field__hint">a third is a common and far more achievable target</span>
+        </label>
+        <div class="field__control" data-affix="post">
+          <input class="input" id="sav-share" type="text" inputmode="decimal" value="50" />
+          <span class="field__affix field__affix--post" aria-hidden="true">%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field__label" for="sav-return">
+          <span>Return</span><span class="field__hint">after fees, before inflation</span>
+        </label>
+        <div class="field__control" data-affix="post">
+          <input class="input" id="sav-return" type="text" inputmode="decimal" value="6" />
+          <span class="field__affix field__affix--post" aria-hidden="true">%</span>
+        </div>
+      </div>
+    </Fragment>
+
+    <div class="verdict">
+      <div class="verdict__label">In one sentence</div>
+      <p class="verdict__text" id="sav-verdict">—</p>
+    </div>
+
+    <div id="sav-notes"></div>
+
+    <section style="margin-top:var(--s-7)">
+      <div class="section-head"><h2>The balance building</h2></div>
+      <Chart id="chart-sav" height={240} caption="What you put in, and what the growth adds on top." />
+    </section>
+
+    <div style="margin-top:var(--s-6)">
+      <DataNote
+        source={GIFT_VERIFIED.source}
+        sourceUrl="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf"
+        updated={GIFT_VERIFIED.checkedOn}
+        verified={true}
+        note="There is no federal annual contribution cap on a 529. The relevant limit is the gift tax annual exclusion, which is what the notes above refer to. State aggregate balance caps and state tax deductions vary far too much to state here."
+      />
+    </div>
+
+    <section class="prose" style="margin-top:var(--s-8)">
+      <h2>Do not aim at the whole number</h2>
+      <p>
+        The full projected cost of a four-year degree fifteen years from now is
+        a frightening figure, and frightening figures stop people starting. The
+        default here aims at half, and a third is a widely used planning rule:
+        a third from savings, a third from income during the degree, a third
+        from borrowing.
+      </p>
+      <p>
+        That is not a compromise so much as a recognition of how paying for
+        education actually works. Almost nobody funds a degree entirely from a
+        pot saved in advance, and a family that saves a third has removed a
+        third of the debt — which is an enormous result, and one they will
+        never get if the target felt impossible and they never opened the
+        account.
+      </p>
+
+      <h2>Why starting early matters more than saving more</h2>
+      <p>
+        The figure worth looking at above is what waiting a single year adds to
+        the monthly contribution you need. It is usually larger than people
+        expect, and it grows the longer you leave it.
+      </p>
+      <p>
+        The reason is that the early money is the money that compounds
+        longest. A pound saved at birth has eighteen years to grow; the same
+        pound saved at fourteen has four. That is why the "of which growth"
+        column matters — over a long enough horizon, growth contributes a
+        substantial share of the final balance, and the only way to get it is
+        time.
+      </p>
+
+      <h2>What a 529 actually gives you</h2>
+      <p>
+        Growth is not taxed, and withdrawals for qualified education expenses
+        are not taxed. That is the whole benefit, and over fifteen years it is
+        a large one — the growth column above would otherwise be taxed as it
+        accrued.
+      </p>
+      <p>
+        Many states also offer a deduction or credit on contributions to their
+        own plan. These vary enormously and some states offer nothing at all,
+        so it is worth checking yours before defaulting to whichever plan
+        appears first in a search. A state deduction is often the single
+        largest factor in which plan to choose.
+      </p>
+      <p>
+        There is <strong>no federal annual contribution limit</strong>. The
+        limit people mean is the gift tax annual exclusion, and exceeding it
+        means filing a form rather than paying tax. The five-year election lets
+        a grandparent front-load five years at once, which is worth doing for
+        the compounding rather than for the tax.
+      </p>
+
+      <h2>The return assumption is doing a lot of work</h2>
+      <p>
+        Every projection here rests on the return you enter, and small changes
+        compound into large differences over fifteen years. Six per cent is a
+        reasonable middle for a diversified age-based portfolio after fees;
+        eight is optimistic, four is conservative.
+      </p>
+      <p>
+        It is worth running the same plan at four and at eight to see the
+        spread. If the target is only reachable at eight, the plan does not
+        really work — it is a bet. If it holds at four, you have a plan with
+        room in it, which is what you want when the money is needed on a fixed
+        date and cannot wait for a recovery.
+      </p>
+      <p>
+        Note also that the cost inflation applied to the degree is separate
+        from the return. Education costs have historically risen faster than
+        general inflation, which is why the target grows while you save toward
+        it — and why a plan built on today's sticker price falls short.
+      </p>
+
+      <h2>If you are starting late</h2>
+      <p>
+        A short horizon changes the answer rather than just shrinking it. With
+        five years or fewer, compounding contributes little and the return
+        assumption barely matters — what you put in is roughly what you get
+        out, and the case for taking investment risk with money you will need
+        on a known date is weak.
+      </p>
+      <p>
+        The tax-free growth is worth less over a short window too, though a
+        state deduction on contributions may still make the account worthwhile
+        on its own. And the honest framing shifts: with five years left, saving
+        is about reducing borrowing rather than replacing it. That is still
+        worth doing — every pound saved is a pound not borrowed at 6% — but it
+        is a different plan from the one a family starting at birth is running.
+      </p>
+
+      <h2>The risks worth knowing</h2>
+      <p>
+        <strong>Non-qualified withdrawals are penalised.</strong> Earnings
+        withdrawn for anything other than qualified expenses attract income tax
+        plus a 10% penalty on the growth. Over-saving is a real cost, which is
+        another argument for aiming at a share rather than the whole.
+      </p>
+      <p>
+        <strong>Investment risk does not disappear because the money is
+        earmarked.</strong> Most plans offer age-based portfolios that shift
+        toward bonds as the start date approaches, which is the sensible
+        default. A portfolio still heavily in equities the year before matric
+        is taking a risk the timeline cannot absorb.
+      </p>
+      <p>
+        <strong>Financial aid treatment.</strong> A 529 owned by a parent is
+        assessed lightly in federal aid calculations — far more lightly than
+        the same money in the student's name. Grandparent-owned accounts have
+        been treated differently at various times, so check the current rules
+        before restructuring anything for that reason alone.
+      </p>
+    </section>
+
+    <RelatedTools heading="Also on the site" items={toolsExcept(tool.slug).map((t) => ({
+      href: `/tools/${t.slug}`, title: t.title, desc: t.blurb,
+    }))} />
+  </ToolRoster>
+
+  <script src="../../scripts/sav-island.ts"></script>
+</BaseLayout>

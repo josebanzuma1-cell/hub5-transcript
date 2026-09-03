@@ -1,0 +1,90 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CollegeCostTool from '../../components/CollegeCostTool.astro';
+import { SITE } from '../../lib/site';
+import { COLLEGES } from '@data/colleges';
+import { compute, netPriceFor } from '../../lib/tools/college-cost';
+import { currency } from '@kit/calc/format';
+
+export function getStaticPaths() {
+  return COLLEGES.map((c) => ({ params: { college: c.slug }, props: { c } }));
+}
+const { c } = Astro.props;
+const canonical = `/colleges/${c.slug}`;
+const title = `${c.name} — Net Price and True Cost | ${SITE.name}`;
+
+/* The description carries computed figures rather than hand-typed ones: 142
+   hand-written descriptions is 142 chances to contradict the page. */
+const mid = netPriceFor(c, 'mid');
+const demo = compute({
+  netPricePerYear: mid, years: 4, scholarships: 0, contribution: 5000,
+  inflation: 3, loanRate: 6.53, loanYears: 10, earnings10: c.earnings10,
+});
+const description =
+  `${c.name} costs about ${currency(mid)} a year for a family earning $48,000 to $75,000 ` +
+  `after grant aid, or ${currency(demo.totalCost)} over four years` +
+  `${c.sticker ? `, against a sticker price of ${currency(c.sticker)}` : ''}. ` +
+  'Net price by income band, debt at graduation, and what the degree returns.';
+
+const kind = c.ownership === 'public' ? 'Public'
+  : c.ownership === 'private' ? 'Private non-profit' : 'For-profit';
+
+const schema = [{
+  '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+    { '@type': 'ListItem', position: 2, name: 'Colleges', item: `${SITE.url}/colleges` },
+    { '@type': 'ListItem', position: 3, name: c.name, item: `${SITE.url}${canonical}` },
+  ],
+}];
+
+const similar = COLLEGES
+  .filter((o) => o.slug !== c.slug && o.state === c.state)
+  .sort((a, b) => Math.abs(a.netPrice - c.netPrice) - Math.abs(b.netPrice - c.netPrice))
+  .slice(0, 6);
+---
+<BaseLayout {title} {description} {canonical} {schema}>
+  <CollegeCostTool
+    title={`What does ${c.name} actually cost?`}
+    intro={`Published net price by family income, and what borrowing the rest would mean. ${c.city}, ${c.state} · ${kind}${c.size ? ` · ${c.size.toLocaleString('en-US')} students` : ''}.`}
+    breadcrumbs={[
+      { href: '/', label: 'Home' },
+      { href: '/colleges', label: 'Colleges' },
+      { label: c.name },
+    ]}
+    collegeSlug={c.slug}
+  >
+    <section style="margin-top:var(--s-7)">
+      <div class="section-head"><h2>{c.name} in brief</h2></div>
+      <div class="results__grid results__grid--3">
+        <div class="stat">
+          <span class="stat__label">Average net price</span>
+          <span class="stat__value">{currency(c.netPrice)}</span>
+          <span class="stat__note">per year across all incomes, after grant aid</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Median earnings</span>
+          <span class="stat__value">{c.earnings10 ? currency(c.earnings10) : '—'}</span>
+          <span class="stat__note">ten years after entry, including those who did not finish</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Completion rate</span>
+          <span class="stat__value">{c.completion != null ? `${(c.completion * 100).toFixed(0)}%` : '—'}</span>
+          <span class="stat__note">within six years — the cost above assumes you finish</span>
+        </div>
+      </div>
+    </section>
+
+    {similar.length > 0 && (
+      <section style="margin-top:var(--s-7)">
+        <div class="section-head"><h2>Others in {c.state} at a similar price</h2></div>
+        <div class="chip-row">
+          {similar.map((o) => <a class="chip" href={`/colleges/${o.slug}`}>{o.name}</a>)}
+          <a class="chip" href="/colleges">All {COLLEGES.length} →</a>
+        </div>
+      </section>
+    )}
+  </CollegeCostTool>
+
+  <script src="../../scripts/cost-island.ts"></script>
+</BaseLayout>

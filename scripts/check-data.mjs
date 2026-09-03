@@ -24,6 +24,8 @@ const { GRADES, LEVELS } = await load('src/lib/tools/gpa.ts');
 const { SCALES, toPoints } = await load('src/lib/tools/scale.ts');
 const { POVERTY_2026, POVERTY_VERIFIED, PLANS, PLANS_VERIFIED, RAP_BANDS, povertyLine } = await load('src/data/student-aid.ts');
 const { MAX_AGE_DAYS } = await load('src/data/types.ts');
+const { GIFT_2026, GIFT_VERIFIED } = await load('src/data/student-aid.ts');
+const { COLLEGES, SCORECARD_VERIFIED } = await load('src/data/colleges.ts');
 
 const strict = process.env.PUBLIC_REQUIRE_VERIFIED === '1';
 const problems = [];
@@ -104,6 +106,56 @@ for (const b of RAP_BANDS) {
 }
 if (RAP_BANDS[RAP_BANDS.length - 1].upTo !== null) problems.push('the top RAP band must be open-ended');
 console.log(`  repayment: ${PLANS.length} plans, ${RAP_BANDS.length} RAP bands`);
+
+
+// --- gift tax exclusion, used by the 529 planner ---
+checkProvenance('gift tax exclusion (2026)', GIFT_VERIFIED);
+if (GIFT_2026.fiveYearElection !== GIFT_2026.annualExclusion * 5) {
+  problems.push('the five-year election must be exactly five annual exclusions');
+}
+if (!(GIFT_2026.annualExclusion > 10_000 && GIFT_2026.annualExclusion < 50_000)) {
+  problems.push(`implausible gift tax annual exclusion ${GIFT_2026.annualExclusion}`);
+}
+
+// --- College Scorecard import ---
+checkProvenance('college scorecard', SCORECARD_VERIFIED);
+console.log(`  colleges: ${COLLEGES.length} institutions`);
+const slugs = new Set();
+for (const c of COLLEGES) {
+  if (slugs.has(c.slug)) problems.push(`colleges: duplicate slug "${c.slug}" — one page would overwrite the other`);
+  slugs.add(c.slug);
+  if (!(c.netPrice > 0)) problems.push(`${c.name}: net price must be positive`);
+  if (c.netPrice > 100_000) problems.push(`${c.name}: implausible net price ${c.netPrice}`);
+  if (c.sticker != null && c.sticker < c.netPrice) {
+    problems.push(`${c.name}: sticker (${c.sticker}) is below net price (${c.netPrice}) — one of them is wrong`);
+  }
+  if (c.completion != null && (c.completion < 0 || c.completion > 1)) {
+    problems.push(`${c.name}: completion rate must be a fraction, got ${c.completion}`);
+  }
+  if (c.earnings10 != null && !(c.earnings10 > 5_000 && c.earnings10 < 500_000)) {
+    problems.push(`${c.name}: implausible earnings ${c.earnings10}`);
+  }
+  if (!['public', 'private', 'for-profit'].includes(c.ownership)) {
+    problems.push(`${c.name}: unknown ownership "${c.ownership}"`);
+  /* Net price should rise with income overall. Small dips between adjacent
+     bands are normal — these are averages of real awards, and merit aid is
+     not distributed smoothly — so only a LARGE inversion is flagged, because
+     that is the signature of the import having mixed the public and private
+     columns for a row rather than of ordinary variation. */
+  const bands = [c.byIncome.low, c.byIncome.lowMid, c.byIncome.mid, c.byIncome.upperMid, c.byIncome.high]
+    .filter((v) => v != null);
+  for (let i = 1; i < bands.length; i++) {
+    const drop = bands[i - 1] - bands[i];
+    if (drop > 1_500 && drop > bands[i - 1] * 0.10) {
+      problems.push(`${c.name}: net price falls sharply as income rises (${bands[i - 1]} then ${bands[i]}) — check the import mapped the right ownership column`);
+      break;
+    }
+  }
+  if (bands.length >= 2 && bands[bands.length - 1] < bands[0]) {
+    problems.push(`${c.name}: the highest income band pays less than the lowest overall`);
+  }
+  }
+}
 
 console.log('');
 if (problems.length) {

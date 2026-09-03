@@ -1,6 +1,6 @@
 # Transcript — grade and student finance calculators
 
-Hub 5 of the utility site portfolio. Three calculators, no ad slots, no lead
+Hub 5 of the utility site portfolio. Eight calculators, no ad slots, no lead
 capture, nothing sent to a server.
 
 ```bash
@@ -20,6 +20,8 @@ npm test             # model checks
 | 23 | Grade needed on the final | Says when the target is unreachable, and when the grade is already secured, instead of printing "you need 118%" |
 | 25 | Student loan payoff | Loans listed individually; compares avalanche, snowball and minimums, and reports what the snowball costs rather than dismissing it |
 | 26 | Income-driven repayment | Models the 2026 landscape: SAVE is gone, RAP is the only plan for loans from July 2026, and eligibility turns on when you borrowed |
+| 27 | True cost of college | Works from published net price for *your* family income band, not the sticker — the same institution can differ by $49,899 a year between bands — and compounds each year's borrowing from the year it is drawn |
+| 28 | 529 / scholarship planner | Targets a third of the cost rather than all of it, and puts a number on what waiting one year costs |
 
 ## The funnel is the point
 
@@ -60,11 +62,12 @@ repayment rules are unusually volatile right now.
 ## Before launch
 
 - [ ] Set `SITE.url` to the real domain, in `src/lib/site.ts`, `astro.config.mjs` and `public/robots.txt`
-- [ ] Decide on plan tools 24, 27 and 28 — see the note below
+- [ ] Decide on plan tool 24 — see the note below
 - [ ] Re-check the poverty guidelines and repayment rules each January
+- [ ] Refresh the College Scorecard import when a new academic year lands
 - [ ] Time the launch for term end — tool 23 spikes hard in December and May
 
-## Two plan tools deliberately not built
+## One plan tool deliberately not built
 
 **24 — class rank / honours threshold.** The plan itself says "thin data —
 check availability first". Availability is poor: class rank thresholds are set
@@ -73,10 +76,36 @@ laude and above) are per institution. There is no data set to build a
 programmatic surface on, and a calculator that asks you to supply the threshold
 is answering a question you had already answered.
 
-**27 — true cost of college.** This one is buildable and worth building, but it
-is a data project rather than an afternoon: per-institution net price comes
-from IPEDS and the College Scorecard, which is thousands of rows with real
-provenance obligations. It deserves its own pass rather than being bolted on.
+## The College Scorecard import
 
-**28 — scholarship / 529 planner** is straightforward and was left for the same
-pass, since it shares the savings-projection machinery with hub 3.
+Tools 27 and 28 rest on `src/data/colleges.ts`, which is generated — never hand
+edited — by `scripts/import-scorecard.mjs` from the U.S. Department of
+Education's College Scorecard API. Regenerate with:
+
+```
+node scripts/import-scorecard.mjs            # dry run, prints what would change
+node scripts/import-scorecard.mjs --write    # writes src/data/colleges.ts
+```
+
+It runs against `DEMO_KEY` by default, which is rate limited; set
+`SCORECARD_API_KEY` in `.env` for a real key. The import keeps 142 institutions
+chosen for coverage rather than prestige — every state represented, and the
+public/private/for-profit mix roughly matching where students actually enrol.
+
+Three things about this data are worth knowing before touching it:
+
+- **Net price is published by family income band, and the spread is the whole
+  point of tool 27.** The widest published low-to-high gap in the set is
+  $49,899 a year at one institution; the median gap is $12,982. A page that
+  quoted a single "average net price" would be hiding the only number that
+  matters.
+- **The API returns a separate net-price series for public and for private
+  institutions**, under different field names. Reading the wrong one yields
+  plausible numbers that are silently wrong, so `npm run data:check` flags any
+  row where net price falls sharply as income rises — the signature of that
+  mistake. Small dips between adjacent bands are normal and are not flagged;
+  these are averages of real awards and merit aid is not distributed smoothly.
+- **Not every institution reports everything.** Earnings, completion rate and
+  individual income bands are all nullable, and the models fall back rather
+  than substituting zero. 142 rows carry earnings; 140 carry a full income
+  breakdown.

@@ -150,3 +150,31 @@ export const PLANS_VERIFIED: Verified = {
     + 'Repayment Assistance Plan under P.L. 119-21; SAVE confirmed ended by court order 10 March 2026',
   by: 'BAMU',
 };
+
+/* ============================================================
+   529 contribution limits.
+
+   There is no federal annual contribution cap on a 529. What there is instead
+   is the gift tax annual exclusion — contribute more than that per beneficiary
+   per year and you are making a reportable gift, which for most families means
+   filing a form rather than paying tax. The five-year election lets a donor
+   front-load five years of exclusions at once, which is the "superfunding"
+   grandparents are usually told about.
+
+   States impose their own aggregate balance caps (commonly $235,000 to
+   $600,000) and their own tax deductions. Both vary too much to state here,
+   and the page says so rather than picking one.
+   ============================================================ */
+export const GIFT_2026 = {
+  /** annual gift tax exclusion, per donor per beneficiary */
+  annualExclusion: 19_000,
+  /** the five-year election front-loads five years of exclusions */
+  fiveYearElection: 19_000 * 5,
+};
+
+export const GIFT_VERIFIED: Verified = {
+  checkedOn: CHECKED,
+  source: 'IRS Rev. Proc. 2025-32 (2026 inflation adjustments), annual gift tax exclusion; '
+    + 'IRC 529(c)(2)(B) for the five-year election',
+  by: 'BAMU',
+};

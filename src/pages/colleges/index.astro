@@ -1,0 +1,97 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import DataNote from '@kit/components/DataNote.astro';
+import { SITE } from '../../lib/site';
+import { COLLEGES, SCORECARD_VERIFIED } from '@data/colleges';
+import { currency } from '@kit/calc/format';
+
+const canonical = '/colleges';
+const title = `Net Price at ${COLLEGES.length} Large Universities | ${SITE.name}`;
+const description =
+  `What students actually pay at ${COLLEGES.length} universities with 15,000 or more ` +
+  'students, after grant aid — and how sharply that changes with family income.';
+
+const sorted = [...COLLEGES].sort((a, b) => a.netPrice - b.netPrice);
+const withGap = COLLEGES
+  .filter((c) => c.byIncome.low != null && c.byIncome.high != null)
+  .map((c) => ({ c, gap: c.byIncome.high! - c.byIncome.low! }))
+  .sort((a, b) => b.gap - a.gap);
+const medianNet = sorted[Math.floor(sorted.length / 2)].netPrice;
+---
+<BaseLayout {title} {description} {canonical}>
+  <div class="page-band">
+    <div class="page">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Colleges</span>
+      </nav>
+      <div class="tool-hero">
+        <h1>What people actually pay</h1>
+        <p>
+          Net price after grant aid at {COLLEGES.length} universities with
+          15,000 students or more — and how far it moves with family income at
+          the very same institution.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="results__grid results__grid--3" style="margin-top:var(--s-6)">
+      <div class="stat">
+        <span class="stat__label">Median net price</span>
+        <span class="stat__value">{currency(medianNet)}</span>
+        <span class="stat__note">per year across these {COLLEGES.length} institutions</span>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Cheapest</span>
+        <span class="stat__value">{currency(sorted[0].netPrice)}</span>
+        <span class="stat__note">{sorted[0].name}</span>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Widest income gap</span>
+        <span class="stat__value">{currency(withGap[0].gap)}</span>
+        <span class="stat__note">a year, between the lowest and highest income bands at {withGap[0].c.name}</span>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--s-6)">
+      <DataNote
+        source={SCORECARD_VERIFIED.source}
+        sourceUrl="https://collegescorecard.ed.gov/data/"
+        updated={SCORECARD_VERIFIED.checkedOn}
+        verified={true}
+        note="Imported from the Department of Education's College Scorecard. Each metric is published on its own schedule, so net price and earnings may describe different cohorts."
+      />
+    </div>
+
+    <section style="margin-top:var(--s-7)">
+      <div class="section-head"><h2>All {COLLEGES.length}, cheapest first</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left">Institution</th>
+              <th>State</th>
+              <th>Net price</th>
+              <th>Sticker</th>
+              <th>Earnings at 10yr</th>
+              <th>Completion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((c) => (
+              <tr>
+                <td style="text-align:left"><a href={`/colleges/${c.slug}`}>{c.name}</a></td>
+                <td>{c.state}</td>
+                <td class="num">{currency(c.netPrice)}</td>
+                <td class="num">{c.sticker ? currency(c.sticker) : '—'}</td>
+                <td class="num">{c.earnings10 ? currency(c.earnings10) : '—'}</td>
+                <td class="num">{c.completion != null ? `${(c.completion * 100).toFixed(0)}%` : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

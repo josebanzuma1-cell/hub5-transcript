@@ -405,3 +405,39 @@ this the other way round would bury the answer below a form.
     shipped a calculator for a plan nobody can enrol in. Ten minutes of
     checking changed the tool's entire shape — eligibility now turns on when
     the loans were disbursed, a question no pre-2026 version had to ask.
+
+## Traps found building tools 27 and 28
+
+**A generated data file needs a generator in the repo, not a memory of one.**
+`src/data/colleges.ts` is 142 rows written by `scripts/import-scorecard.mjs`.
+The generator is committed alongside its output for a reason: the next person
+to touch this data will otherwise hand-edit the rows, and the provenance stamp
+will keep claiming an import that no longer describes the file.
+
+**A structural gate has to be tuned to the failure it is looking for.** The
+first version of the colleges check flagged *any* net price that fell as income
+rose, and it fired on twelve institutions — all of them $150–500 wobbles in
+genuine published averages. The mistake worth catching is reading the private
+net-price series for a public institution, which moves thousands. A gate that
+cries wolf on real data teaches you to ignore it, so the threshold is now
+$1,500 *and* 10%, plus a separate check that the top band never pays less than
+the bottom overall.
+
+**Do not reach for the roster manager just because the shape looks like rows.**
+Tool 27 renders a per-year table, but the rows are *derived* from the inputs
+rather than edited by the reader. `mountRoster` exists to serialise
+reader-edited rows into the URL; using it here meant rebuilding the row body on
+every keystroke, which threw away the `data-k` cells the nudge text reads. The
+island builds its own table and leaves the roster manager to tools 20 and 25.
+
+**Interest starts when each year is drawn, not at graduation.** Treating four
+years of borrowing as one balance appearing on the last day understates the
+debt by about 16% at 6%. The model compounds year by year, which is why a
+one-year degree in the tests still shows a year of interest — a fact that broke
+two test expectations before it was the model that got checked.
+
+**A prose claim about arithmetic is a test.** The FAQ originally said repayment
+passes ~10% of income once debt exceeds first-year salary. The model says debt
+*equal* to salary already costs 13.3%, and 10% arrives at about three-quarters
+of salary. The sentence was wrong in a way no reader would catch and no build
+would fail on; it is now pinned by two assertions.

@@ -1,0 +1,124 @@
+---
+/* The college cost body, shared by the generic tool page and all 142
+   institution pages. Extracted rather than duplicated: 143 copies of a
+   calculator is 143 places for one fix to be applied 142 times. */
+import ToolRoster from './ToolRoster.astro';
+import DataNote from '@kit/components/DataNote.astro';
+import { INCOME_BANDS } from '../lib/tools/college-cost';
+import { SCORECARD_VERIFIED } from '@data/colleges';
+
+interface Props {
+  title: string;
+  intro: string;
+  breadcrumbs: Array<{ href?: string; label: string }>;
+  /** slug of the institution to open on; blank for the generic page */
+  collegeSlug?: string;
+}
+const { title, intro, breadcrumbs, collegeSlug = '' } = Astro.props;
+---
+<ToolRoster
+  {title} {intro} {breadcrumbs}
+  rosterId="cost"
+  addLabel="Add a year"
+  columns="minmax(0,1fr) 118px 110px"
+>
+  <Fragment slot="result">
+    <div class="scorecard__label">Four-year cost</div>
+    <div class="scorecard__value" id="cost-total">—</div>
+    <p class="scorecard__sub" id="cost-sub">—</p>
+    <div class="scorecard__split">
+      <div class="stat">
+        <span class="stat__label">Debt at graduation</span>
+        <span class="scorecard__alt" id="cost-debt">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Then per month</span>
+        <span class="scorecard__alt" id="cost-mo">—</span>
+      </div>
+    </div>
+  </Fragment>
+
+  <Fragment slot="options">
+    <div class="field" style="margin-top:var(--s-4)">
+      <label class="field__label" for="cost-school"><span>Institution</span></label>
+      <div class="field__control">
+        <select class="select" id="cost-school"><option value="">Loading…</option></select>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field__label" for="cost-income">
+        <span>Family income</span><span class="field__hint">net price varies enormously by this</span>
+      </label>
+      <div class="field__control">
+        <select class="select" id="cost-income">
+          {INCOME_BANDS.map((b) => (
+            <option value={b.id} selected={b.id === 'mid'}>{b.label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+    <div class="field-grid">
+      <div class="field">
+        <label class="field__label" for="cost-schol"><span>Scholarships /yr</span></label>
+        <div class="field__control" data-affix="pre">
+          <span class="field__affix field__affix--pre" aria-hidden="true">$</span>
+          <input class="input" id="cost-schol" type="text" inputmode="decimal" value="0" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="field__label" for="cost-contrib"><span>Family pays /yr</span></label>
+        <div class="field__control" data-affix="pre">
+          <span class="field__affix field__affix--pre" aria-hidden="true">$</span>
+          <input class="input" id="cost-contrib" type="text" inputmode="decimal" value="5000" />
+        </div>
+      </div>
+    </div>
+    <div class="field-grid">
+      <div class="field">
+        <label class="field__label" for="cost-years"><span>Years</span></label>
+        <div class="field__control">
+          <input class="input" id="cost-years" type="text" inputmode="numeric" value="4" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="field__label" for="cost-rate"><span>Loan rate</span></label>
+        <div class="field__control" data-affix="post">
+          <input class="input" id="cost-rate" type="text" inputmode="decimal" value="6.53" />
+          <span class="field__affix field__affix--post" aria-hidden="true">%</span>
+        </div>
+      </div>
+    </div>
+  </Fragment>
+
+  <Fragment slot="roster">
+    <span>Year</span><span>Cost that year</span><span>To borrow</span>
+  </Fragment>
+
+  <div class="verdict">
+    <div class="verdict__label">In one sentence</div>
+    <p class="verdict__text" id="cost-verdict">—</p>
+  </div>
+
+  <div id="cost-notes"></div>
+
+  <section style="margin-top:var(--s-7)">
+    <div class="section-head"><h2>What the same place costs at each income level</h2></div>
+    <div class="working">
+      <div class="working__head">Published net price per year, by family income</div>
+      <div class="working__body" id="cost-bands"></div>
+    </div>
+  </section>
+
+  <div style="margin-top:var(--s-6)">
+    <DataNote
+      source={SCORECARD_VERIFIED.source}
+      sourceUrl="https://collegescorecard.ed.gov/data/"
+      updated={SCORECARD_VERIFIED.checkedOn}
+      verified={true}
+      note="Net price, earnings and completion come from the Scorecard's 'latest' data, which is not a single year — the Department publishes different metrics on different schedules, so net price and earnings may describe different cohorts. Fine for comparing institutions; not a quote."
+    />
+  </div>
+
+  <span id="cost-default-school" hidden set:html={JSON.stringify(collegeSlug)} />
+  <slot />
+</ToolRoster>

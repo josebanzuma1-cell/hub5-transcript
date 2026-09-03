@@ -87,6 +87,28 @@ export const TOOLS: Tool[] = [
     planId: 26, built: true, group: 'money',
   },
   {
+    slug: 'college-cost-calculator',
+    title: 'True Cost of College Calculator',
+    nav: 'College cost',
+    question: 'What will this degree actually cost?',
+    blurb:
+      'The sticker price is not the price. Works from the net price families ' +
+      'at your income level actually pay at 142 large universities, then shows ' +
+      'the debt, the repayment and what the degree returns.',
+    planId: 27, built: true, group: 'money',
+  },
+  {
+    slug: '529-savings-calculator',
+    title: '529 College Savings Calculator',
+    nav: '529 savings',
+    question: 'How much should I be saving?',
+    blurb:
+      'What your contributions grow to, what the degree will cost by the time ' +
+      'it starts, and what a year of delay costs. Aims at a realistic share of ' +
+      'the total rather than the whole intimidating number.',
+    planId: 28, built: true, group: 'money',
+  },
+  {
     slug: 'student-loan-payoff-calculator',
     title: 'Student Loan Payoff Calculator',
     nav: 'Loan payoff',

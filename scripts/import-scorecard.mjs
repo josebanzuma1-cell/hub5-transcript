@@ -1,0 +1,167 @@
+/* Import institution data from the US Department of Education's College
+   Scorecard API.
+
+   Run: node scripts/import-scorecard.mjs [--write]
+   Dry run by default, like every importer in this portfolio — an import that
+   writes on its first run gives you no chance to look at what it fetched.
+
+   Uses DEMO_KEY unless SCORECARD_API_KEY is set. DEMO_KEY is heavily rate
+   limited and fine for a one-off build; get a free key from api.data.gov
+   before re-running this regularly.
+
+   Scope: institutions predominantly awarding bachelor's degrees with 15,000
+   or more students. A deliberate line — it keeps the set to places people
+   search for by name, rather than generating thousands of thin pages for
+   institutions nobody looks up. */
+import fs from 'node:fs';
+import path from 'node:path';
+
+const root = path.resolve(import.meta.dirname, '..');
+const KEY = process.env.SCORECARD_API_KEY || 'DEMO_KEY';
+const WRITE = process.argv.includes('--write');
+const OUT = path.join(root, 'src/data/colleges.ts');
+
+const FIELDS = [
+  'id', 'school.name', 'school.city', 'school.state', 'school.ownership',
+  'latest.cost.attendance.academic_year',
+  'latest.cost.avg_net_price.public', 'latest.cost.avg_net_price.private',
+  'latest.cost.net_price.public.by_income_level.0-30000',
+  'latest.cost.net_price.public.by_income_level.30001-48000',
+  'latest.cost.net_price.public.by_income_level.48001-75000',
+  'latest.cost.net_price.public.by_income_level.75001-110000',
+  'latest.cost.net_price.public.by_income_level.110001-plus',
+  'latest.cost.net_price.private.by_income_level.0-30000',
+  'latest.cost.net_price.private.by_income_level.30001-48000',
+  'latest.cost.net_price.private.by_income_level.48001-75000',
+  'latest.cost.net_price.private.by_income_level.75001-110000',
+  'latest.cost.net_price.private.by_income_level.110001-plus',
+  'latest.earnings.10_yrs_after_entry.median',
+  'latest.completion.completion_rate_4yr_150nt',
+  'latest.student.size',
+].join(',');
+
+const slug = (s) => s.toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70);
+
+async function page(n) {
+  const url = 'https://api.data.gov/ed/collegescorecard/v1/schools'
+    + `?api_key=${KEY}&school.degrees_awarded.predominant=3`
+    + `&latest.student.size__range=15000..&fields=${FIELDS}`
+    + `&per_page=100&page=${n}&sort=latest.student.size:desc`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${(await res.text()).slice(0, 200)}`);
+  return res.json();
+}
+
+const OWNERSHIP = { 1: 'public', 2: 'private', 3: 'for-profit' };
+const rows = [];
+let total = 0;
+for (let n = 0; ; n++) {
+  const data = await page(n);
+  total = data.metadata.total;
+  for (const r of data.results) {
+    const own = OWNERSHIP[r['school.ownership']] ?? 'private';
+    const kind = own === 'public' ? 'public' : 'private';
+    const pick = (k) => r[`latest.cost.net_price.${kind}.by_income_level.${k}`] ?? null;
+    const net = own === 'public'
+      ? r['latest.cost.avg_net_price.public'] : r['latest.cost.avg_net_price.private'];
+    // A row with no net price cannot answer the question the tool exists for.
+    if (net == null) continue;
+    rows.push({
+      id: r.id,
+      name: r['school.name'],
+      slug: slug(r['school.name']),
+      city: r['school.city'] ?? '',
+      state: r['school.state'] ?? '',
+      ownership: own,
+      sticker: r['latest.cost.attendance.academic_year'] ?? null,
+      netPrice: net,
+      byIncome: {
+        low: pick('0-30000'), lowMid: pick('30001-48000'), mid: pick('48001-75000'),
+        upperMid: pick('75001-110000'), high: pick('110001-plus'),
+      },
+      earnings10: r['latest.earnings.10_yrs_after_entry.median'] ?? null,
+      completion: r['latest.completion.completion_rate_4yr_150nt'] ?? null,
+      size: r['latest.student.size'] ?? null,
+    });
+  }
+  if ((n + 1) * 100 >= total) break;
+}
+
+// Slugs are URLs; a collision would silently overwrite a page.
+const seen = new Set();
+for (const r of rows) {
+  if (seen.has(r.slug)) r.slug = `${r.slug}-${r.state.toLowerCase()}`;
+  seen.add(r.slug);
+}
+
+console.log(`  API reported ${total} institutions; ${rows.length} have a net price and were kept.`);
+console.log(`  ${rows.filter((r) => r.ownership === 'public').length} public, `
+  + `${rows.filter((r) => r.ownership === 'private').length} private, `
+  + `${rows.filter((r) => r.ownership === 'for-profit').length} for-profit`);
+console.log(`  with earnings: ${rows.filter((r) => r.earnings10).length}; `
+  + `with a full income breakdown: ${rows.filter((r) => Object.values(r.byIncome).every((v) => v != null)).length}`);
+
+if (!WRITE) {
+  console.log('\n  Dry run. Pass --write to update src/data/colleges.ts.');
+  console.log('  sample:', JSON.stringify(rows[0]));
+  process.exit(0);
+}
+
+const today = new Date().toISOString().slice(0, 10);
+const header = `/* Institution costs and outcomes, imported from the US Department of
+   Education's College Scorecard.
+
+   Generated by scripts/import-scorecard.mjs — do not hand-edit. Re-run the
+   importer instead, or the next import silently discards your changes.
+
+   Scope: institutions predominantly awarding bachelor's degrees with 15,000 or
+   more students AND a published net price. Places people search for by name,
+   rather than thousands of thin pages nobody looks up.
+
+   The figures are the Scorecard's "latest", which is not a single year — the
+   Department publishes different metrics on different schedules, so net price
+   and earnings may come from different cohorts. Every page using them says so,
+   because it is exactly the caveat that matters when comparing two places. */
+import type { Verified } from './types';
+
+export interface College {
+  id: number;
+  name: string;
+  slug: string;
+  city: string;
+  state: string;
+  ownership: 'public' | 'private' | 'for-profit';
+  /** published cost of attendance before any aid */
+  sticker: number | null;
+  /** average net price actually paid, after grant aid */
+  netPrice: number;
+  /** net price by family income band, where published */
+  byIncome: {
+    low: number | null; lowMid: number | null; mid: number | null;
+    upperMid: number | null; high: number | null;
+  };
+  /** median earnings ten years after entry */
+  earnings10: number | null;
+  /** completion within 150% of normal time, four-year institutions */
+  completion: number | null;
+  size: number | null;
+}
+
+export const SCORECARD_VERIFIED: Verified = {
+  checkedOn: '${today}',
+  source:
+    'US Department of Education, College Scorecard API (api.data.gov), institution-level '
+    + '"latest" data: cost of attendance, average net price and net price by family income, '
+    + 'median earnings ten years after entry, and completion rate',
+  by: 'BAMU',
+};
+
+export const COLLEGES: College[] = `;
+
+fs.writeFileSync(OUT, header + JSON.stringify(rows, null, 1) + `;
+
+export const collegeBySlug = (s: string): College | undefined =>
+  COLLEGES.find((c) => c.slug === s);
+`);
+console.log(`\n  Wrote ${rows.length} institutions to src/data/colleges.ts`);
